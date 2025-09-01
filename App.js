@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#EAF4FA",
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+    padding: 24,
   },
   logo: {
     
