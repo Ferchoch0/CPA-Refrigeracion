@@ -6,20 +6,35 @@ import {
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  Image 
+  Image,
+  StatusBar 
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 export default function App() {
   return (
+    
     <SafeAreaView style={styles.container}>
+      {/* StatusBar para iconos blancos */}
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="#003366" 
+      />
 
-      {/* Título */}
-      <Text style={styles.title}>Hola!</Text>
-      <Text style={styles.subtitle}>Bienvenido</Text>
+      {/* Contenedor del título */}
+      <View style={styles.header}>
+        <Text style={styles.title}>HOLA!</Text>
+        <Text style={styles.subtitle}>Bienvenido</Text>
+      </View>
+
 
       {/* Formulario */}
       <View style={styles.form}>
+        <Text style={styles.form_title}> Ingresar {"\n"} usuario </Text>
+        <Image 
+          source={require("./assets/refrigerador.png")}
+          style={styles.refrigerador} 
+          resizeMode="contain" // mantiene la proporción
+        />
         <TextInput 
           placeholder="Email" 
           style={styles.input} 
@@ -38,14 +53,18 @@ export default function App() {
         <TouchableOpacity style={styles.loginBtn}>
           <Text style={styles.loginText}>Iniciar sesión</Text>
         </TouchableOpacity>
+
+        {/* Logo CPA */}
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require("./assets/logo.png")}
+            style={styles.logo} 
+            resizeMode="contain"
+          />
+        </View>
       </View>
 
-      {/* Logo CPA */}
-      <Image 
-        source={require("./assets/logo.png")}
-        style={styles.logo} 
-        resizeMode="contain"
-      />
+
     </SafeAreaView>
   );
 }
@@ -53,28 +72,63 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#EAF4FA",
+    backgroundColor: "#003366",
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+  },
+  header: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center", // Centra verticalmente
+    marginTop: 40,            // Ajusta el espacio superior
+    flex: 1,                  // ocupa toda la pantalla
+},
+  logoContainer: {
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#b1b1b1ff",
+    marginTop: 30,
+    paddingTop: 20,
+    width: "100%",
   },
   logo: {
-    
+    width: 220,
+  },
+  refrigerador: {
+    position: "absolute",
+    top: -50,  
+    right: -210, 
+    zIndex: 10, 
+    height: 200,
   },
   title: {
-    fontSize: 36,
+    fontSize: 50,
     fontWeight: "bold",
-    color: "#003366",
+    color: "#ffffffff",
+    letterSpacing: 2,
+    fontStyle: "italic",
   },
   subtitle: {
     fontSize: 16,
-    color: "#003366",
+    color: "#ffffffff",
     marginBottom: 30,
+    fontStyle: "italic"
   },
   form: {
+    padding:40,
     width: "100%",
-    marginBottom: 20,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    backgroundColor: "#EAF4FA"
   },
+  form_title: {
+    fontSize: 38,
+    letterSpacing: 2,
+    fontWeight: "bold",
+    color: "#003366",
+    marginBottom: 32,
+  },
+  
   input: {
     backgroundColor: "#fff",
     borderRadius: 25,
@@ -84,7 +138,7 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
   },
   forgot: {
-    color: "#003366",
+    color: "#033D94",
     textAlign: "right",
     marginBottom: 20,
   },
@@ -98,10 +152,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
-  },
-  orText: {
-    marginTop: 25,
-    marginBottom: 10,
-    color: "#003366",
   },
 });
