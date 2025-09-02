@@ -1,12 +1,7 @@
 {
   "expo": {
-<<<<<<< HEAD
-    "name": "MiApp",
-    "slug": "MiApp",
-=======
     "name": "CPA-Refrigeracion",
     "slug": "CPA-Refrigeracion",
->>>>>>> a09bcb503e68f77a936866188f38959339d00280
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
