@@ -1,10 +1,19 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
-export default function HomeScreen() {
+function HomeItem() {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Bienvenido al Home</Text>
+    </View>
+  );
+
+}
+
+export default function HomeScreen() {
+  return (
+    <View style={styles.container}>
+      <HomeItem />
     </View>
   );
 }
