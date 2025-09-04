@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 const Navbar = () => {
@@ -72,7 +72,7 @@ const WorkList = () => (
         numColumns={2}
         columnWrapperStyle={styles.row}
         renderItem={({ item }) => <WorkItem item={item} />}
-        style={{ flexGrow: 0, marginBottom: 16}}
+        style={{ flexGrow: 0, marginBottom: 16 }}
     />
 );
 
@@ -102,7 +102,7 @@ export default function HomeScreen() {
         <View style={styles.container}>
             <Navbar />
             <Header />
-            <View style={styles.mainContent}>
+            <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: 20 }}>
                 <Text style={styles.sectionTitle}>Tus Acciones</Text>
                 <WorkList />
 
@@ -113,7 +113,7 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                 </View>
                 <ClientList />
-            </View>
+            </ScrollView>
         </View>
     );
 }
