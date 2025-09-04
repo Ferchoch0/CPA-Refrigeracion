@@ -3,7 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import LoginScreen from "./src/pages/Login";
-import HomeScreen from "./src/pages/Home";
+import Navbar from "./src/components/Navbar"; // 👈 aquí está tu tab con Home adentro
 
 const Stack = createNativeStackNavigator();
 
@@ -11,10 +11,13 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {/* Login no tiene navbar */}
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        
+
+        {/* Después del login, mostramos el Navbar */}
+        <Stack.Screen name="Main" component={Navbar} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
+
