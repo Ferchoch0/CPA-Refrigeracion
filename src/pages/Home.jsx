@@ -97,15 +97,6 @@ const ClientList = () => (
     />
 );
 
-function HomeItem() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Bienvenido al Home</Text>
-    </View>
-  );
-
-}
-
 export default function HomeScreen() {
     return (
         <View style={styles.container}>
