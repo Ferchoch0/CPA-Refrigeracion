@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 const Navbar = () => {
@@ -98,32 +98,41 @@ const ClientList = () => (
 );
 
 export default function HomeScreen() {
-    return (
-        <View style={styles.container}>
-            <Navbar />
+  return (
+    <View style={styles.container}>
+      <Navbar />
+      <FlatList
+        data={[]}
+        keyExtractor={(item, index) => index.toString()}
+        ListHeaderComponent={
+          <>
             <Header />
-            <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: 20 }}>
-                <Text style={styles.sectionTitle}>Tus Acciones</Text>
-                <WorkList />
+            <View style={styles.mainContent}>
+              <Text style={styles.sectionTitle}>Tus Acciones</Text>
+              <WorkList />
 
-                <View style={styles.containerClientTitle}>
-                    <Text style={styles.sectionTitle}>Últimos clientes</Text>
-                    <TouchableOpacity>
-                        <Text style={{ color: "#b3b8d3ff" }}>Ver todos</Text>
-                    </TouchableOpacity>
-                </View>
-                <ClientList />
-            </ScrollView>
-        </View>
-    );
+              <View style={styles.containerClientTitle}>
+                <Text style={styles.sectionTitle}>Últimos clientes</Text>
+                <TouchableOpacity>
+                  <Text style={{ color: "#b3b8d3ff" }}>Ver todos</Text>
+                </TouchableOpacity>
+              </View>
+              <ClientList /> 
+            </View>
+          </>
+        }
+        contentContainerStyle={{ paddingBottom: 20 }}
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
     headerContainer: {
         flexDirection: "row",
-        alignItems: "center",
+        alignItems: "start",
         justifyContent: "center",
-        height: 60,
+        height: 75,
         paddingHorizontal: 10,
         paddingTop: 35,
     },
