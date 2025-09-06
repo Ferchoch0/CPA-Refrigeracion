@@ -1,5 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList} from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList } from "react-native";
+import Calendar from "../components/Calendar";
 import { Ionicons } from "@expo/vector-icons";
 
 const Navbar = () => {
@@ -24,18 +25,48 @@ const Header = () => (
     </View>
 );
 
+const SearchBar = ({ data, onFilter }) => {
+    const [search, setSearch] = useState("");
+
+    const handleSearch = (text) => {
+        setSearch(text);
+        if (text.trim() === "") {
+            onFilter(data);
+        } else {
+            const filtered = data.filter((client) =>
+                client.name.toLowerCase().includes(text.toLowerCase())
+            );
+            onFilter(filtered);
+        }
+    };
+
+    return (
+        <View style={styles.searchContainer}>
+            <Ionicons name="search-outline" size={20} color="#666" />
+            <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar cliente..."
+                value={search}
+                onChangeText={handleSearch}
+            />
+        </View>
+    );
+};
+
 const projects = [
     {
         id: "1",
         title: "Agregar +",
         category: "Nuevo cliente",
         icon: "person-add-outline",
+        window: "NewClient"
     },
     {
         id: "2",
         title: "Lista Completa",
         category: "Ver todos los clientes",
         icon: "people-outline",
+        window: "ClientsList"
     },
 ];
 
@@ -52,29 +83,29 @@ const clients = [
 
 ];
 
-const WorkItem = ({ item }) => (
-    <TouchableOpacity style={styles.workItem}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name={item.icon} size={26} color="#1C3F6E" style={styles.icon} />
-            <View>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.category}>{item.category}</Text>
-            </View>
-        </View>
-    </TouchableOpacity>
-);
+// const WorkItem = ({ item }) => (
+//     <TouchableOpacity style={styles.workItem} onPress={() => navigation.navigate(item.window)}>
+//         <View style={{ flexDirection: "row", alignItems: "center" }}>
+//             <Ionicons name={item.icon} size={26} color="#1C3F6E" style={styles.icon} />
+//             <View>
+//                 <Text style={styles.title}>{item.title}</Text>
+//                 <Text style={styles.category}>{item.category}</Text>
+//             </View>
+//         </View>
+//     </TouchableOpacity>
+// );
 
-const WorkList = () => (
-    <FlatList
-        key={"two-columns"}
-        data={projects}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        renderItem={({ item }) => <WorkItem item={item} />}
-        style={{ flexGrow: 0, marginBottom: 16 }}
-    />
-);
+// const WorkList = () => (
+//     <FlatList
+//         key={"two-columns"}
+//         data={projects}
+//         keyExtractor={(item) => item.id}
+//         numColumns={2}
+//         columnWrapperStyle={styles.row}
+//         renderItem={({ item }) => <WorkItem item={item} />}
+//         style={{ flexGrow: 0, marginBottom: 16 }}
+//     />
+// );
 
 const ClientItem = ({ item }) => (
     <View style={styles.clientItem}>
@@ -88,43 +119,44 @@ const ClientItem = ({ item }) => (
     </View>
 );
 
-const ClientList = () => (
-    <FlatList
-        data={clients}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ClientItem item={item} />}
-        style={{ flexGrow: 0 }}
-    />
-);
-
 export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Navbar />
-      <FlatList
-        data={[]}
-        keyExtractor={(item, index) => index.toString()}
-        ListHeaderComponent={
-          <>
-            <Header />
-            <View style={styles.mainContent}>
-              <Text style={styles.sectionTitle}>Tus Acciones</Text>
-              <WorkList />
+    const [filteredClients, setFilteredClients] = useState(clients);
 
-              <View style={styles.containerClientTitle}>
-                <Text style={styles.sectionTitle}>Últimos clientes</Text>
-                <TouchableOpacity>
-                  <Text style={{ color: "#b3b8d3ff" }}>Ver todos</Text>
-                </TouchableOpacity>
-              </View>
-              <ClientList /> 
-            </View>
-          </>
-        }
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
-    </View>
-  );
+    return (
+        <View style={styles.container}>
+            <Navbar />
+            <FlatList
+                data={[]}
+                keyExtractor={(item, index) => index.toString()}
+                ListHeaderComponent={
+                    <>
+                        <Header />
+                        <View style={styles.mainContent}>
+                            <Calendar />
+                            <SearchBar data={clients} onFilter={setFilteredClients} />
+
+                            <View style={styles.containerClientTitle}>
+                                <Text style={styles.sectionTitle}>Últimos clientes</Text>
+                                <TouchableOpacity>
+                                    <Text style={{ color: "#b3b8d3ff" }}>Ver todos</Text>
+                                </TouchableOpacity>
+                            </View>
+
+
+
+                            <FlatList
+                                data={filteredClients}
+                                keyExtractor={(item) => item.id}
+                                renderItem={({ item }) => <ClientItem item={item} />}
+                                style={{ flexGrow: 0 }}
+                            />
+                        </View>
+                    </>
+                }
+                contentContainerStyle={{ paddingBottom: 20 }}
+            />
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -141,6 +173,7 @@ const styles = StyleSheet.create({
         left: 10,
         top: 35,
     },
+
     headerTitle: {
         fontSize: 20,
         textAlign: "center",
@@ -165,6 +198,22 @@ const styles = StyleSheet.create({
     avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#ccc" },
 
     row: { justifyContent: "space-between" },
+
+    searchContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#f1f1f1",
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        marginBottom: 12,
+    },
+    searchInput: {
+        flex: 1,
+        height: 55,
+        marginLeft: 8,
+        fontSize: 14,
+        color: "#333",
+    },
 
     workItem: {
         flex: 1,
