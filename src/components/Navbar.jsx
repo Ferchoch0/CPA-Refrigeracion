@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Icon from "react-native-vector-icons/Ionicons";
 
 import HomeScreen from "../pages/Home"; // Tu pantalla real de Home
+import EquiposScreen from "../pages/Equipos"; // Tu pantalla real de Equipos
 
 const Tab = createBottomTabNavigator();
 
@@ -44,8 +45,8 @@ export default function Navbar() {
 
       {/* Profile */}
       <Tab.Screen
-        name="Profile"
-        component={HomeScreen} // Cambiar después a pantalla a algo que no sea Home
+        name="Perfil"
+        component={EquiposScreen} // Cambiar después a pantalla a algo que no sea Home
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="person" size={26} color={color} />
