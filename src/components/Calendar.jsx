@@ -19,22 +19,31 @@ export default function Calendar() {
   });
 
   return (
-    <View style={styles.weekRow}>
-      {week.map((item, index) => (
-        <View key={index} style={[styles.item, item.isToday && styles.selected]}>
-          <Text style={[styles.date, item.isToday && styles.selectedText]}>
-            {item.date}
-          </Text>
-          <Text style={[styles.day, item.isToday && styles.selectedText]}>
-            {item.day}
-          </Text>
-        </View>
-      ))}
+    <View style={styles.calendarContainer}>
+      <View style={styles.weekRow}>
+        {week.map((item, index) => (
+          <View key={index} style={[styles.item, item.isToday && styles.selected]}>
+            <Text style={[styles.date, item.isToday && styles.selectedText]}>
+              {item.date}
+            </Text>
+            <Text style={[styles.day, item.isToday && styles.selectedText]}>
+              {item.day}
+            </Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  calendarContainer: {
+    backgroundColor: "#EAF4FA",
+    marginBottom: 20,
+    paddingBottom: 20,
+    paddingEnd: 5,
+    borderEndEndRadius: 40,
+  },
   item: {
     alignItems: "center",
     padding: 10,
@@ -45,11 +54,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#003366",
   },
   weekRow: {
-  flexDirection: "row",
-  justifyContent: "center",
-  columnGap: 10,
-  marginBottom: 20,
-},
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    justifyContent: "center",
+    columnGap: 10,
+    borderEndStartRadius: 60,
+    borderEndEndRadius: 60,
+  },
   date: {
     fontSize: 16,
     color: "#888",

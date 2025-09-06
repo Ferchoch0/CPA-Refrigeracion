@@ -6,8 +6,8 @@ import { Ionicons } from "@expo/vector-icons";
 const Navbar = () => {
     return (
         <View style={styles.headerContainer}>
-            <Image source={require("../../assets/logo-short.png")} style={styles.logoImage} />
-            <Text style={styles.headerTitle}>Home</Text>
+            <Image source={require("../../assets/logo2.png")} style={styles.logoImage} />
+            <Text style={styles.headerTitle}>Inicio</Text>
         </View>
     );
 };
@@ -131,8 +131,8 @@ export default function HomeScreen() {
                 ListHeaderComponent={
                     <>
                         <Header />
+                        <Calendar />
                         <View style={styles.mainContent}>
-                            <Calendar />
                             <SearchBar data={clients} onFilter={setFilteredClients} />
 
                             <View style={styles.containerClientTitle}>
@@ -162,7 +162,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     headerContainer: {
         flexDirection: "row",
-        alignItems: "start",
+        alignItems: "center",
         justifyContent: "center",
         height: 75,
         paddingHorizontal: 10,
@@ -172,6 +172,8 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 10,
         top: 35,
+        height: 50,
+        width: 50,
     },
 
     headerTitle: {
@@ -183,36 +185,46 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
 
     header: {
-        borderBottomLeftRadius: 28,
-        padding: 16,
+        backgroundColor: "#EAF4FA",
+        height: 200,
+        padding: 22,
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        height: 200,
+        borderBottomLeftRadius: 60,
     },
 
-    mainContent: { flex: 1, padding: 16 },
+    headerWrapper: {
+        backgroundColor: "#fff",
+    },
 
-    greeting: { color: "#003366", fontSize: 24, fontWeight: "bold" },
+    mainContent: { flex: 1, padding: 10, paddingHorizontal: 16 },
+
+    greeting: { color: "#303030ff", fontSize: 24, fontWeight: "bold" },
     welcome: { color: "#b3b8d3ff", fontSize: 14 },
-    avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#ccc" },
+    avatar: { width: 55, height: 55, borderRadius: 30, backgroundColor: "#ccc" },
 
     row: { justifyContent: "space-between" },
 
     searchContainer: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#f1f1f1",
-        borderRadius: 10,
-        paddingHorizontal: 10,
-        marginBottom: 12,
+        backgroundColor: "#eaf4fa9a",
+        borderRadius: 16,
+        paddingHorizontal: 14,
+        marginBottom: 16,
+        height: 50,
+        shadowColor: "#000",
+        shadowOpacity: 0.05,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 3,
     },
+
     searchInput: {
         flex: 1,
-        height: 55,
         marginLeft: 8,
-        fontSize: 14,
-        color: "#333",
+        fontSize: 15,
+        color: "#303030",           // mismo tono que el greeting
     },
 
     workItem: {
