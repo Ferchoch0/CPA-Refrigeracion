@@ -5,17 +5,23 @@ import { Ionicons } from "@expo/vector-icons";
 
 const Navbar = () => {
     return (
-        <View style={styles.headerContainer}>
-            <Image source={require("../../assets/logo2.png")} style={styles.logoImage} />
-            <Text style={styles.headerTitle}>Inicio</Text>
+        <View style={styles.navbar}>
+            <View style={styles.logoWrapper}>
+                <Image
+                    source={require("../../assets/logo2.png")}
+                    style={styles.logoImage}
+                />
+            </View>
+            <Text style={styles.navTitle}>Inicio</Text>
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
         </View>
     );
 };
 
-const Header = () => (
+const Header = ({ name }) => (
     <View style={styles.header}>
         <View>
-            <Text style={styles.greeting}>Hola, Diego!</Text>
+            <Text style={styles.greeting}>Hola, {name}</Text>
             <Text style={styles.welcome}>Bienvenido de nuevo</Text>
         </View>
         <Image
@@ -83,30 +89,6 @@ const clients = [
 
 ];
 
-// const WorkItem = ({ item }) => (
-//     <TouchableOpacity style={styles.workItem} onPress={() => navigation.navigate(item.window)}>
-//         <View style={{ flexDirection: "row", alignItems: "center" }}>
-//             <Ionicons name={item.icon} size={26} color="#1C3F6E" style={styles.icon} />
-//             <View>
-//                 <Text style={styles.title}>{item.title}</Text>
-//                 <Text style={styles.category}>{item.category}</Text>
-//             </View>
-//         </View>
-//     </TouchableOpacity>
-// );
-
-// const WorkList = () => (
-//     <FlatList
-//         key={"two-columns"}
-//         data={projects}
-//         keyExtractor={(item) => item.id}
-//         numColumns={2}
-//         columnWrapperStyle={styles.row}
-//         renderItem={({ item }) => <WorkItem item={item} />}
-//         style={{ flexGrow: 0, marginBottom: 16 }}
-//     />
-// );
-
 const ClientItem = ({ item }) => (
     <View style={styles.clientItem}>
         <View style={styles.iconContainer}>
@@ -130,7 +112,7 @@ export default function HomeScreen() {
                 keyExtractor={(item, index) => index.toString()}
                 ListHeaderComponent={
                     <>
-                        <Header />
+                        <Header name="Diego" />
                         <Calendar />
                         <View style={styles.mainContent}>
                             <SearchBar data={clients} onFilter={setFilteredClients} />
@@ -160,32 +142,47 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-    headerContainer: {
+    navbar: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
-        height: 75,
-        paddingHorizontal: 10,
-        paddingTop: 35,
-    },
-    logoImage: {
-        position: "absolute",
-        left: 10,
-        top: 35,
-        height: 50,
-        width: 50,
+        justifyContent: "space-between",
+        height: 70,
+        paddingHorizontal: 16,
+        backgroundColor: "#003366",
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: 3 },
+        shadowRadius: 4,
+        elevation: 3,
+        borderBottomWidth: 1,
+        borderBottomColor: "#002244",
     },
 
-    headerTitle: {
+    logoWrapper: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
+    logoImage: {
+        width: 45,
+        height: 45,
+        resizeMode: "contain",
+    },
+
+    navTitle: {
         fontSize: 20,
-        textAlign: "center",
-        color: "#003366",
+        fontWeight: "bold",
+        color: "#fff",
     },
 
     container: { flex: 1, backgroundColor: "#fff" },
 
     header: {
-        backgroundColor: "#EAF4FA",
+        backgroundColor: "#003366",
         height: 200,
         padding: 22,
         flexDirection: "row",
@@ -200,7 +197,7 @@ const styles = StyleSheet.create({
 
     mainContent: { flex: 1, padding: 10, paddingHorizontal: 16 },
 
-    greeting: { color: "#303030ff", fontSize: 24, fontWeight: "bold" },
+    greeting: { color: "#eee", fontSize: 24, fontWeight: "bold" },
     welcome: { color: "#b3b8d3ff", fontSize: 14 },
     avatar: { width: 55, height: 55, borderRadius: 30, backgroundColor: "#ccc" },
 

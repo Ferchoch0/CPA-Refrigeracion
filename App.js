@@ -2,7 +2,7 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import SplashScreen from "./src/pages/SplashScreen"; // 👈 splash animada
+import SplashScreen from "./src/pages/SplashScreen";
 import LoginScreen from "./src/pages/Login";
 import Navbar from "./src/components/Navbar";
 

@@ -38,11 +38,11 @@ export default function Calendar() {
 
 const styles = StyleSheet.create({
   calendarContainer: {
-    backgroundColor: "#EAF4FA",
+    backgroundColor: "#003366",
     marginBottom: 20,
     paddingBottom: 20,
-    paddingEnd: 5,
-    borderEndEndRadius: 40,
+    paddingEnd: 15,
+    borderEndEndRadius: 44,
   },
   item: {
     alignItems: "center",
