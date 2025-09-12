@@ -9,8 +9,11 @@ import {
   TextInput,
   Platform,
   Image,
+  Modal,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { useNavigation } from "@react-navigation/native";
+import TipoEquipoScreen from "../components/TipoEquipo";
 
 const equiposData = [
   { id: "1", nombre: "Refrigerador 1", codigo: "RF-1001", estado: "Activo" },
@@ -19,10 +22,12 @@ const equiposData = [
   { id: "4", nombre: "Refrigerador 4", codigo: "RF-1004", estado: "Dado de baja" },
 ];
 
-export default function EquiposScreen({ navigation }) {
+export default function EquiposScreen({ navigation: propNavigation }) {
+  const navigation = useNavigation();
   const [search, setSearch] = useState("");
   const [equipos, setEquipos] = useState(equiposData);
   const [estadoFiltro, setEstadoFiltro] = useState("Todos");
+  const [modalVisible, setModalVisible] = useState(false);
 
   const handleSearch = (text, estado = estadoFiltro) => {
     setSearch(text);
@@ -87,7 +92,7 @@ export default function EquiposScreen({ navigation }) {
   const renderEquipo = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate("EquipoForm", { equipo: item })}
+      onPress={() => navigation.navigate("TipoEquipo", { equipo: item })}
       activeOpacity={0.85}
     >
       <View style={[styles.cardColor, getEstadoStyle(item.estado)]} />
@@ -107,12 +112,25 @@ export default function EquiposScreen({ navigation }) {
     </TouchableOpacity>
   );
 
+  // Recibe los datos seleccionados del modal y navega al formulario
+  const handleContinue = (tipoEquipo, unidad) => {
+    setModalVisible(false);
+    navigation.navigate("FormGeneral", { tipoEquipo, unidad });
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <View>
+          {/* Botón atrás */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>Cliente registrado,</Text>
             <Text style={styles.headerSubtitle}>ahora gestiona sus equipos</Text>
           </View>
@@ -182,7 +200,7 @@ export default function EquiposScreen({ navigation }) {
           {/* Botón agregar */}
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => navigation.navigate("EquipoForm")}
+            onPress={() => setModalVisible(true)}
             activeOpacity={0.85}
           >
             <Ionicons name="add" size={24} color="#fff" />
@@ -203,6 +221,19 @@ export default function EquiposScreen({ navigation }) {
             </View>
           }
         />
+
+        {/* Modal de selección de tipo de equipo */}
+        <Modal
+          visible={modalVisible}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <TipoEquipoScreen
+            onContinue={handleContinue}
+            onCancel={() => setModalVisible(false)}
+          />
+        </Modal>
       </View>
     </View>
   );
@@ -230,6 +261,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     justifyContent: "space-between",
+  },
+  backButton: {
+    marginRight: 12,
+    padding: 4,
   },
   headerTitle: {
     fontSize: 22,
