@@ -15,7 +15,7 @@ class ClientModel
         FROM clients c
         INNER JOIN assignment a ON c.client_id = a.client_id
         WHERE a.user_id = ?
-    ";
+        ";
 
         $stmt = $this->conn->prepare($sql);
 

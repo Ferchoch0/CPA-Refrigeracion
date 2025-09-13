@@ -41,7 +41,8 @@ const SearchBar = ({ data, onFilter }) => {
             onFilter(data);
         } else {
             const filtered = data.filter((client) =>
-                client.name.toLowerCase().includes(text.toLowerCase())
+                (client.company_name && client.company_name.toLowerCase().includes(text.toLowerCase())) ||
+                (client.contact_person && client.contact_person.toLowerCase().includes(text.toLowerCase()))
             );
             onFilter(filtered);
         }
@@ -60,31 +61,15 @@ const SearchBar = ({ data, onFilter }) => {
     );
 };
 
-const projects = [
-    {
-        id: "1",
-        title: "Agregar +",
-        category: "Nuevo cliente",
-        icon: "person-add-outline",
-        window: "NewClient"
-    },
-    {
-        id: "2",
-        title: "Lista Completa",
-        category: "Ver todos los clientes",
-        icon: "people-outline",
-        window: "ClientsList"
-    },
-];
-
 const ClientItem = ({ item }) => (
     <View style={styles.clientItem}>
         <View style={styles.iconContainer}>
-            <Ionicons name={item.icon} size={28} color="#003366" />
+            <Ionicons name="business-outline" size={28} color="#003366" />
         </View>
         <View>
-            <Text style={styles.clientName}>{item.name}</Text>
-            <Text style={styles.clientStatus}>{item.status}</Text>
+            <Text style={styles.clientName}>{item.company_name}</Text>
+            <Text style={styles.clientStatus}>{item.contact_person}</Text>
+
         </View>
     </View>
 );
@@ -97,7 +82,7 @@ export default function HomeScreen() {
 
     const fetchClients = async (id) => {
         try {
-            const response = await fetch('http://192.168.0.184/MIAPP/api/controller/technicalController.php', {
+            const response = await fetch('http://192.168.0.184/MIAPP/api/controller/clientController.php', {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -109,6 +94,7 @@ export default function HomeScreen() {
             const result = await response.json();
 
             if (result.success) {
+                console.log("Clientes recibidos:", result.clients);
                 setAllClients(result.clients);
                 setFilteredClients(result.clients);
             } else {
@@ -159,7 +145,7 @@ export default function HomeScreen() {
 
                             <FlatList
                                 data={filteredClients}
-                                keyExtractor={(item) => item.id}
+                                keyExtractor={(item) => item.client_id.toString()}
                                 renderItem={({ item }) => <ClientItem item={item} />}
                                 style={{ flexGrow: 0 }}
                             />
@@ -252,7 +238,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginLeft: 8,
         fontSize: 15,
-        color: "#303030",           // mismo tono que el greeting
+        color: "#303030",
     },
 
     workItem: {
