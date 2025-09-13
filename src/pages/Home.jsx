@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList } from "react-native";
 import Calendar from "../components/Calendar";
 import { Ionicons } from "@expo/vector-icons";
@@ -76,19 +77,6 @@ const projects = [
     },
 ];
 
-const clients = [
-    { id: "1", name: "Juan Pérez", status: "Activo", icon: "person-circle-outline" },
-    { id: "2", name: "María López", status: "Activo", icon: "person-circle-outline" },
-    { id: "3", name: "Carlos Díaz", status: "Completado", icon: "person-circle-outline" },
-    { id: "4", name: "Ana Gómez", status: "Activo", icon: "person-circle-outline" },
-    { id: "5", name: "Luis Fernández", status: "Completado", icon: "person-circle-outline" },
-    { id: "6", name: "Sofía Martínez", status: "Activo", icon: "person-circle-outline" },
-    { id: "7", name: "Sofía Martínez", status: "Activo", icon: "person-circle-outline" },
-    { id: "8", name: "Sofía Martínez", status: "Activo", icon: "person-circle-outline" },
-    { id: "9", name: "Sofía Martínez", status: "Activo", icon: "person-circle-outline" },
-
-];
-
 const ClientItem = ({ item }) => (
     <View style={styles.clientItem}>
         <View style={styles.iconContainer}>
@@ -102,7 +90,50 @@ const ClientItem = ({ item }) => (
 );
 
 export default function HomeScreen() {
-    const [filteredClients, setFilteredClients] = useState(clients);
+    const [filteredClients, setFilteredClients] = useState([]);
+    const [userName, setUserName] = useState("Usuario");
+    const [userId, setUserId] = useState(null);
+    const [allClients, setAllClients] = useState([]);
+
+    const fetchClients = async (id) => {
+        try {
+            const response = await fetch('http://192.168.0.184/MIAPP/api/controller/technicalController.php', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "getClients",
+                    userId: id
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setAllClients(result.clients);
+                setFilteredClients(result.clients);
+            } else {
+                console.log("Error al traer clientes:", result.error);
+                setAllClients([]);
+                setFilteredClients([]);
+            }
+        } catch (error) {
+            console.log("Error fetchClients:", error);
+        }
+    };
+
+    useEffect(() => {
+        const loadUser = async () => {
+            const storedUser = await AsyncStorage.getItem('user');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                setUserName(user.name);
+                setUserId(user.id);
+
+                fetchClients(user.id);
+            }
+        };
+        loadUser();
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -112,10 +143,10 @@ export default function HomeScreen() {
                 keyExtractor={(item, index) => index.toString()}
                 ListHeaderComponent={
                     <>
-                        <Header name="Diego" />
+                        <Header name={userName} />
                         <Calendar />
                         <View style={styles.mainContent}>
-                            <SearchBar data={clients} onFilter={setFilteredClients} />
+                            <SearchBar data={allClients} onFilter={setFilteredClients} />
 
                             <View style={styles.containerClientTitle}>
                                 <Text style={styles.sectionTitle}>Últimos clientes</Text>
