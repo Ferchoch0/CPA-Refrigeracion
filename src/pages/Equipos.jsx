@@ -1,5 +1,5 @@
 // src/pages/Equipos.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,32 +15,54 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import TipoEquipoScreen from "../components/TipoEquipo";
 
-const equiposData = [
-  { id: "1", nombre: "Refrigerador 1", codigo: "RF-1001", estado: "Activo" },
-  { id: "2", nombre: "Refrigerador 2", codigo: "RF-1002", estado: "Activo: Requiere revisión" },
-  { id: "3", nombre: "Refrigerador 3", codigo: "RF-1003", estado: "Inactivo" },
-  { id: "4", nombre: "Refrigerador 4", codigo: "RF-1004", estado: "Dado de baja" },
-];
-
 export default function EquiposScreen({ navigation: propNavigation }) {
   const navigation = useNavigation();
   const [search, setSearch] = useState("");
-  const [equipos, setEquipos] = useState(equiposData);
+  const [equipos, setEquipos] = useState([]);
+  const [filteredEquipos, setFilteredEquipos] = useState([]); // lista filtrada
   const [estadoFiltro, setEstadoFiltro] = useState("Todos");
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEquipos = async () => {
+      try {
+        const response = await fetch(
+          "http://192.168.0.184/MIAPP/api/controller/equipmentsController.php?action=getEquipmentsByClient&client_id=1"
+        );
+        const data = await response.json();
+
+        if (data.error) {
+          console.error("Error:", data.error);
+          setEquipos([]);
+          setFilteredEquipos([]);
+        } else {
+          setEquipos(data);
+          setFilteredEquipos(data);
+        }
+      } catch (err) {
+        console.error("Error de red:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEquipos();
+  }, []);
 
   const handleSearch = (text, estado = estadoFiltro) => {
     setSearch(text);
-    let filtered = equiposData;
+    let filtered = [...equipos];
+
     if (estado !== "Todos") {
-      filtered = filtered.filter((eq) => eq.estado === estado);
+      filtered = filtered.filter((eq) => eq.status === estado);
     }
     if (text.trim() !== "") {
       filtered = filtered.filter((eq) =>
-        eq.nombre.toLowerCase().includes(text.toLowerCase())
+        eq.name.toLowerCase().includes(text.toLowerCase())
       );
     }
-    setEquipos(filtered);
+    setFilteredEquipos(filtered);
   };
 
   const handleFiltrarEstado = (estado) => {
@@ -63,27 +85,14 @@ export default function EquiposScreen({ navigation: propNavigation }) {
     }
   };
 
-  const getEstadoTextColor = (estado) => {
-    switch (estado) {
-      case "Activo":
-        return { color: "#2ecc40" };
-      case "Activo: Requiere revisión":
-        return { color: "#ffb300" };
-      case "Inactivo":
-        return { color: "#e74c3c" };
-      case "Dado de baja":
-        return { color: "#222" };
-      default:
-        return { color: "#666" };
-    }
-  };
-
   const getTotales = () => {
-    const total = equiposData.length;
-    const activos = equiposData.filter(e => e.estado === "Activo").length;
-    const revision = equiposData.filter(e => e.estado === "Activo: Requiere revisión").length;
-    const inactivos = equiposData.filter(e => e.estado === "Inactivo").length;
-    const baja = equiposData.filter(e => e.estado === "Dado de baja").length;
+    const total = equipos.length;
+    const activos = equipos.filter((e) => e.status === "Activo").length;
+    const revision = equipos.filter(
+      (e) => e.status === "Activo: Requiere revisión"
+    ).length;
+    const inactivos = equipos.filter((e) => e.status === "Inactivo").length;
+    const baja = equipos.filter((e) => e.status === "Dado de baja").length;
     return { total, activos, revision, inactivos, baja };
   };
 
@@ -95,16 +104,14 @@ export default function EquiposScreen({ navigation: propNavigation }) {
       onPress={() => navigation.navigate("TipoEquipo", { equipo: item })}
       activeOpacity={0.85}
     >
-      <View style={[styles.cardColor, getEstadoStyle(item.estado)]} />
+      <View style={[styles.cardColor, getEstadoStyle(item.status)]} />
       <View style={styles.cardContent}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.nombre}>{item.nombre}</Text>
-          <Text style={styles.codigo}>{item.codigo}</Text>
+          <Text style={styles.nombre}>{item.name}</Text>
+          <Text style={styles.codigo}>{item.code}</Text>
           <View style={styles.estadoRow}>
-            <View style={[styles.estadoDot, getEstadoStyle(item.estado)]} />
-            <Text style={[styles.estado, getEstadoTextColor(item.estado)]}>
-              {item.estado}
-            </Text>
+            <View style={[styles.estadoDot, getEstadoStyle(item.status)]} />
+            <Text style={styles.estado}>{item.status}</Text>
           </View>
         </View>
         <Ionicons name="chevron-forward" size={22} color="#b0b0b0" />
@@ -132,7 +139,9 @@ export default function EquiposScreen({ navigation: propNavigation }) {
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>Cliente registrado,</Text>
-            <Text style={styles.headerSubtitle}>ahora gestiona sus equipos</Text>
+            <Text style={styles.headerSubtitle}>
+              ahora gestiona sus equipos
+            </Text>
           </View>
           <View style={styles.logoBox}>
             <Image
@@ -147,40 +156,98 @@ export default function EquiposScreen({ navigation: propNavigation }) {
       <View style={styles.bodyContainer}>
         {/* Barra de totales con filtro por estado */}
         <View style={styles.totalsBar}>
-          <TouchableOpacity style={styles.totalBox} onPress={() => handleFiltrarEstado("Todos")}>
+          <TouchableOpacity
+            style={styles.totalBox}
+            onPress={() => handleFiltrarEstado("Todos")}
+          >
             <Text style={styles.totalNumber}>{totales.total}</Text>
-            <Text style={[
-              styles.totalLabel,
-              estadoFiltro === "Todos" && { color: "#0366c9ff", fontWeight: "bold" }
-            ]}>Total</Text>
+            <Text
+              style={[
+                styles.totalLabel,
+                estadoFiltro === "Todos" && {
+                  color: "#0366c9ff",
+                  fontWeight: "bold",
+                },
+              ]}
+            >
+              Total
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.totalBox} onPress={() => handleFiltrarEstado("Activo")}>
-            <Text style={[styles.totalNumber, { color: "#2ecc40" }]}>{totales.activos}</Text>
-            <Text style={[
-              styles.totalLabel,
-              estadoFiltro === "Activo" && { color: "#2ecc40", fontWeight: "bold" }
-            ]}>Activo</Text>
+          <TouchableOpacity
+            style={styles.totalBox}
+            onPress={() => handleFiltrarEstado("Activo")}
+          >
+            <Text style={[styles.totalNumber, { color: "#2ecc40" }]}>
+              {totales.activos}
+            </Text>
+            <Text
+              style={[
+                styles.totalLabel,
+                estadoFiltro === "Activo" && {
+                  color: "#2ecc40",
+                  fontWeight: "bold",
+                },
+              ]}
+            >
+              Activo
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.totalBox} onPress={() => handleFiltrarEstado("Activo: Requiere revisión")}>
-            <Text style={[styles.totalNumber, { color: "#ffb300" }]}>{totales.revision}</Text>
-            <Text style={[
-              styles.totalLabel,
-              estadoFiltro === "Activo: Requiere revisión" && { color: "#ffb300", fontWeight: "bold" }
-            ]}>Revisión</Text>
+          <TouchableOpacity
+            style={styles.totalBox}
+            onPress={() => handleFiltrarEstado("Activo: Requiere revisión")}
+          >
+            <Text style={[styles.totalNumber, { color: "#ffb300" }]}>
+              {totales.revision}
+            </Text>
+            <Text
+              style={[
+                styles.totalLabel,
+                estadoFiltro === "Activo: Requiere revisión" && {
+                  color: "#ffb300",
+                  fontWeight: "bold",
+                },
+              ]}
+            >
+              Revisión
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.totalBox} onPress={() => handleFiltrarEstado("Inactivo")}>
-            <Text style={[styles.totalNumber, { color: "#e74c3c" }]}>{totales.inactivos}</Text>
-            <Text style={[
-              styles.totalLabel,
-              estadoFiltro === "Inactivo" && { color: "#e74c3c", fontWeight: "bold" }
-            ]}>Inactivo</Text>
+          <TouchableOpacity
+            style={styles.totalBox}
+            onPress={() => handleFiltrarEstado("Inactivo")}
+          >
+            <Text style={[styles.totalNumber, { color: "#e74c3c" }]}>
+              {totales.inactivos}
+            </Text>
+            <Text
+              style={[
+                styles.totalLabel,
+                estadoFiltro === "Inactivo" && {
+                  color: "#e74c3c",
+                  fontWeight: "bold",
+                },
+              ]}
+            >
+              Inactivo
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.totalBox} onPress={() => handleFiltrarEstado("Dado de baja")}>
-            <Text style={[styles.totalNumber, { color: "#222" }]}>{totales.baja}</Text>
-            <Text style={[
-              styles.totalLabel,
-              estadoFiltro === "Dado de baja" && { color: "#222", fontWeight: "bold" }
-            ]}>Baja</Text>
+          <TouchableOpacity
+            style={styles.totalBox}
+            onPress={() => handleFiltrarEstado("Dado de baja")}
+          >
+            <Text style={[styles.totalNumber, { color: "#222" }]}>
+              {totales.baja}
+            </Text>
+            <Text
+              style={[
+                styles.totalLabel,
+                estadoFiltro === "Dado de baja" && {
+                  color: "#222",
+                  fontWeight: "bold",
+                },
+              ]}
+            >
+              Baja
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -210,15 +277,16 @@ export default function EquiposScreen({ navigation: propNavigation }) {
 
         {/* Lista de equipos */}
         <FlatList
-          data={equipos}
-          keyExtractor={(item) => item.id}
+          data={filteredEquipos}
+          keyExtractor={(item) => item.equipment_id.toString()}
           renderItem={renderEquipo}
-          contentContainerStyle={{ paddingBottom: 100 }}
           ListEmptyComponent={
-            <View style={styles.emptyBox}>
-              <Ionicons name="cube-outline" size={48} color="#b0b0b0" />
-              <Text style={styles.emptyText}>No hay equipos para mostrar</Text>
-            </View>
+            !loading && (
+              <View style={styles.emptyBox}>
+                <Ionicons name="cube-outline" size={48} color="#b0b0b0" />
+                <Text style={styles.emptyText}>No hay equipos para mostrar</Text>
+              </View>
+            )
           }
         />
 
@@ -238,6 +306,7 @@ export default function EquiposScreen({ navigation: propNavigation }) {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#003366" },

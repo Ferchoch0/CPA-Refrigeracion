@@ -47,7 +47,7 @@ export default function Navbar() {
       {/* Profile */}
       <Tab.Screen
         name="Perfil"
-        component={GeneralScreen} // Cambiar después a pantalla a algo que no sea Home
+        component={EquiposScreen} // Cambiar después a pantalla a algo que no sea Home
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="person" size={26} color={color} />
