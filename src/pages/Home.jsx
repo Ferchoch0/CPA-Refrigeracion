@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList } from "react-native";
 import Calendar from "../components/Calendar";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from '@react-navigation/native';
 
 const Navbar = () => {
     return (
@@ -61,17 +62,19 @@ const SearchBar = ({ data, onFilter }) => {
     );
 };
 
-const ClientItem = ({ item }) => (
-    <View style={styles.clientItem}>
+const ClientItem = ({ item, navigation }) => (
+    <TouchableOpacity
+        style={styles.clientItem}
+        onPress={() => navigation.navigate("Equipos", { clientId: item.client_id })}
+    >
         <View style={styles.iconContainer}>
             <Ionicons name="business-outline" size={28} color="#003366" />
         </View>
         <View>
             <Text style={styles.clientName}>{item.company_name}</Text>
             <Text style={styles.clientStatus}>{item.contact_person}</Text>
-
         </View>
-    </View>
+    </TouchableOpacity>
 );
 
 export default function HomeScreen() {
@@ -79,6 +82,7 @@ export default function HomeScreen() {
     const [userName, setUserName] = useState("Usuario");
     const [userId, setUserId] = useState(null);
     const [allClients, setAllClients] = useState([]);
+    const navigation = useNavigation();
 
     const fetchClients = async (id) => {
         try {
@@ -146,8 +150,7 @@ export default function HomeScreen() {
                             <FlatList
                                 data={filteredClients}
                                 keyExtractor={(item) => item.client_id.toString()}
-                                renderItem={({ item }) => <ClientItem item={item} />}
-                                style={{ flexGrow: 0 }}
+                                renderItem={({ item }) => <ClientItem item={item} navigation={navigation} />}
                             />
                         </View>
                     </>

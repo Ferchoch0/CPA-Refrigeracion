@@ -15,7 +15,8 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import TipoEquipoScreen from "../components/TipoEquipo";
 
-export default function EquiposScreen({ navigation: propNavigation }) {
+export default function EquiposScreen({ route, navigation: propNavigation }) {
+   const { clientId } = route.params;
   const navigation = useNavigation();
   const [search, setSearch] = useState("");
   const [equipos, setEquipos] = useState([]);
@@ -28,7 +29,7 @@ export default function EquiposScreen({ navigation: propNavigation }) {
     const fetchEquipos = async () => {
       try {
         const response = await fetch(
-          "http://192.168.0.184/MIAPP/api/controller/equipmentsController.php?action=getEquipmentsByClient&client_id=1"
+          `http://192.168.0.184/MIAPP/api/controller/equipmentsController.php?action=getEquipmentsByClient&client_id=${clientId}`
         );
         const data = await response.json();
 
