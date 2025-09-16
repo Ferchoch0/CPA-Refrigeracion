@@ -8,6 +8,7 @@ import Navbar from "./src/components/Navbar";
 import EquiposScreen from "./src/pages/Equipos";
 import TipoEquipoScreen from "./src/components/TipoEquipo";
 import FormGeneral from "./src/pages/FormGeneral";
+import AnswersScreen from "./src/pages/Answers";
 
 const Stack = createNativeStackNavigator();
 
@@ -36,6 +37,9 @@ export default function App() {
 
         {/* Página normal para FormGeneral */}
         <Stack.Screen name="FormGeneral" component={FormGeneral} />
+
+        {/* Agrega Equipos como pantalla normal */}
+        <Stack.Screen name="Preguntas" component={AnswersScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

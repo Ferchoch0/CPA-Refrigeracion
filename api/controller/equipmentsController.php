@@ -37,6 +37,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
+        case 'addEquipment':
+            if (isset($data['client_id'], $data['type_equip_id'])) {
+                $clientId = intval($data['client_id']);
+                $typeEquipId = intval($data['type_equip_id']);
+                $placement = $data['unidad'] ?? null;
+
+                $result = $equipmentsModel->addEquipments($clientId, $typeEquipId, $placement);
+
+                echo json_encode($result);
+            } else {
+                echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+            }
+            break;
+
+        case 'saveAnswers':
+            if (isset($_POST['equipment_id'])) {
+                $equipmentId = intval($_POST['equipment_id']);
+                $answers = [];
+
+                foreach ($_POST as $key => $val) {
+                    if (strpos($key, "answer_") === 0) {
+                        $fieldId = str_replace("answer_", "", $key);
+                        $answers[$fieldId] = $val;
+                    }
+                }
+
+                if (!empty($_FILES)) {
+                    foreach ($_FILES as $key => $file) {
+                        if ($file['error'] === UPLOAD_ERR_OK) {
+                            $uploadDir = __DIR__ . "/../../uploads/"; // ruta a tu carpeta
+                            if (!file_exists($uploadDir)) {
+                                mkdir($uploadDir, 0777, true);
+                            }
+
+                            $fileName = uniqid() . "_" . basename($file["name"]);
+                            $filePath = $uploadDir . $fileName;
+
+                            if (move_uploaded_file($file["tmp_name"], $filePath)) {
+                                $fileUrl = "uploads/" . $fileName;
+                                $equipmentsModel->saveImage($equipmentId, $fileUrl);
+                            }
+                        }
+                    }
+                }
+
+                $result = $equipmentsModel->saveAnswers($equipmentId, $answers);
+                echo json_encode($result);
+            } else {
+                echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+            }
+            break;
+
         default:
             echo json_encode(['error' => 'ERR_UNKNOWN_ACTION']);
             break;
@@ -53,6 +105,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode($result);
             } else {
                 echo json_encode(['error' => 'ERR_MISSING_CLIENT_ID']);
+            }
+            break;
+
+        case 'getTasks':
+            try {
+                $result = $equipmentsModel->getQuestionsCategory();
+                echo json_encode($result);
+            } catch (Exception $e) {
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            break;
+
+        case 'getQuestions':
+            try {
+                if (isset($_GET['category_id'])) {
+                    $categoryId = intval($_GET['category_id']);
+                    $result = $equipmentsModel->getQuestionsByCategory($categoryId);
+                    echo json_encode($result);
+                }
+            } catch (Exception $e) {
+                echo json_encode(['error' => $e->getMessage()]);
             }
             break;
 

@@ -3,15 +3,18 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { TimelineScreen } from "../components/TimeLine";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function GeneralScreen() {
     const route = useRoute();
     const navigation = useNavigation();
-    const { tipoEquipo, unidad } = route.params || {};
+    const { equipo, tipoEquipo, unidad, code, equipmentId } = route.params || {};
+
+    const idFinal = equipo?.equipment_id || equipmentId;
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
+            <SafeAreaView style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => navigation.goBack()}
@@ -21,14 +24,14 @@ export default function GeneralScreen() {
                 <View style={styles.headerTextBox}>
                     <Text style={styles.headerTitle}>Equipo:</Text>
                     <Text style={styles.headerSubtitle}>
-                        {tipoEquipo ? tipoEquipo : "Tipo de producto"}
-                        {unidad ? ` • Unidad: ${unidad}` : ""}
+                        {equipo?.code || code}
                     </Text>
                 </View>
-            </View>
+            </SafeAreaView>
             <View style={styles.divider} />
             <View style={styles.content}>
-                <TimelineScreen />
+                
+                <TimelineScreen equipmentId={idFinal} />
             </View>
         </View>
     );
@@ -43,7 +46,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 18,
-        paddingVertical: 16,
+        paddingBottom: 10,
         backgroundColor: "#003366",
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,

@@ -9,9 +9,53 @@ const tipos = [
 
 const requiereUnidad = ["Split", "Rooftop", "Centrales", "Cassette"];
 
-export default function TipoEquipoScreen({ onContinue, onCancel }) {
+export default function TipoEquipoScreen({ clientId, onContinue, onCancel }) {
   const [tipo, setTipo] = useState("");
   const [unidad, setUnidad] = useState("");
+
+  const handleContinue = async (tipo, unidad) => {
+    try {
+      const typeEquipMap = {
+        "Split": 1,
+        "Rooftop": 2,
+        "Centrales": 3,
+        "Cassette": 4,
+        "Camara Frigorifica": 5,
+        "Heladera Residencial": 6,
+        "Freezer": 7,
+        "Exhibidoras": 8,
+        "Heladeras Comercial": 9
+      };
+
+      const typeEquipId = typeEquipMap[tipo];
+
+      const response = await fetch(
+        "http://192.168.0.184/MIAPP/api/controller/equipmentsController.php",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "addEquipment",
+            client_id: clientId,
+            type_equip_id: typeEquipId,
+            unidad: unidad
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        console.log("Equipo creado con id:", data.equipment_id, "y code:", data.code);
+
+        onContinue(tipo, unidad, data.code, data.equipment_id);
+      } else {
+        console.error("Error al agregar equipo:", data.error);
+      }
+
+    } catch (error) {
+      console.error("Error en fetch:", error);
+    }
+  };
 
   return (
     <View style={styles.modalBackground}>
@@ -44,7 +88,7 @@ export default function TipoEquipoScreen({ onContinue, onCancel }) {
         <TouchableOpacity
           style={styles.button}
           disabled={!tipo || (requiereUnidad.includes(tipo) && !unidad)}
-          onPress={() => onContinue(tipo, unidad)}
+          onPress={() => handleContinue(tipo, unidad)}
         >
           <Text style={styles.buttonText}>Continuar</Text>
         </TouchableOpacity>

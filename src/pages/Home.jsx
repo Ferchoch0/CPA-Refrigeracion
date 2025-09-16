@@ -4,19 +4,22 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList } 
 import Calendar from "../components/Calendar";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const Navbar = () => {
     return (
-        <View style={styles.navbar}>
-            <View style={styles.logoWrapper}>
-                <Image
-                    source={require("../../assets/logo2.png")}
-                    style={styles.logoImage}
-                />
+        <SafeAreaView style={{ backgroundColor: "#003366" }}>
+            <View style={styles.navbar}>
+                <View style={styles.logoWrapper}>
+                    <Image
+                        source={require("../../assets/logo2.png")}
+                        style={styles.logoImage}
+                    />
+                </View>
+                <Text style={styles.navTitle}>Inicio</Text>
+                <Ionicons name="notifications-outline" size={24} color="#fff" />
             </View>
-            <Text style={styles.navTitle}>Inicio</Text>
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-        </View>
+        </SafeAreaView>
     );
 };
 
@@ -166,14 +169,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        height: 70,
+        height: 60,
         paddingHorizontal: 16,
         backgroundColor: "#003366",
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 3 },
-        shadowRadius: 4,
-        elevation: 3,
         borderBottomWidth: 1,
         borderBottomColor: "#002244",
     },

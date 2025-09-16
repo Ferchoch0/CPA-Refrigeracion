@@ -14,9 +14,11 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import TipoEquipoScreen from "../components/TipoEquipo";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 
 export default function EquiposScreen({ route, navigation: propNavigation }) {
-   const { clientId } = route.params;
+  const { clientId } = route.params;
   const navigation = useNavigation();
   const [search, setSearch] = useState("");
   const [equipos, setEquipos] = useState([]);
@@ -25,29 +27,30 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchEquipos = async () => {
-      try {
-        const response = await fetch(
-          `http://192.168.0.184/MIAPP/api/controller/equipmentsController.php?action=getEquipmentsByClient&client_id=${clientId}`
-        );
-        const data = await response.json();
+  const fetchEquipos = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `http://192.168.0.184/MIAPP/api/controller/equipmentsController.php?action=getEquipmentsByClient&client_id=${clientId}`
+      );
+      const data = await response.json();
 
-        if (data.error) {
-          console.error("Error:", data.error);
-          setEquipos([]);
-          setFilteredEquipos([]);
-        } else {
-          setEquipos(data);
-          setFilteredEquipos(data);
-        }
-      } catch (err) {
-        console.error("Error de red:", err);
-      } finally {
-        setLoading(false);
+      if (data.error) {
+        console.error("Error:", data.error);
+        setEquipos([]);
+        setFilteredEquipos([]);
+      } else {
+        setEquipos(data);
+        setFilteredEquipos(data);
       }
-    };
+    } catch (err) {
+      console.error("Error de red:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchEquipos();
   }, []);
 
@@ -102,7 +105,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
   const renderEquipo = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate("TipoEquipo", { equipo: item })}
+      onPress={() => navigation.navigate("FormGeneral", { equipo: item })}
       activeOpacity={0.85}
     >
       <View style={[styles.cardColor, getEstadoStyle(item.status)]} />
@@ -121,15 +124,25 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
   );
 
   // Recibe los datos seleccionados del modal y navega al formulario
-  const handleContinue = (tipoEquipo, unidad) => {
+  const handleContinue = async (tipoEquipo, unidad, code, equipmentId) => {
     setModalVisible(false);
-    navigation.navigate("FormGeneral", { tipoEquipo, unidad });
+
+    // pasamos toda la info al FormGeneral
+    navigation.navigate("FormGeneral", {
+      tipoEquipo,
+      unidad,
+      code,
+      equipmentId,
+    });
+
+    // recargar lista
+    await fetchEquipos();
   };
 
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <SafeAreaView style={styles.header}>
         <View style={styles.headerRow}>
           {/* Botón atrás */}
           <TouchableOpacity
@@ -152,7 +165,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
             />
           </View>
         </View>
-      </View>
+      </SafeAreaView>
       {/* Cuerpo */}
       <View style={styles.bodyContainer}>
         {/* Barra de totales con filtro por estado */}
@@ -299,6 +312,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
           onRequestClose={() => setModalVisible(false)}
         >
           <TipoEquipoScreen
+            clientId={clientId}
             onContinue={handleContinue}
             onCancel={() => setModalVisible(false)}
           />
@@ -313,11 +327,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#003366" },
 
   header: {
-    marginBottom: 20,
     backgroundColor: "#003366",
-    paddingTop: Platform.OS === "ios" ? 56 : 42,
     paddingLeft: 0,
-    paddingBottom: 20,
+    paddingBottom: 30,
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
     shadowColor: "#000",

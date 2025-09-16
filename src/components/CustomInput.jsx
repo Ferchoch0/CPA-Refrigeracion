@@ -1,16 +1,30 @@
 import React from "react";
-import { View, TextInput, StyleSheet } from "react-native";
+import { View, TextInput, StyleSheet, Button } from "react-native";
 import { Picker } from "@react-native-picker/picker";
+import * as DocumentPicker from "expo-document-picker"; // si usás Expo
 
 export default function CustomInput({
   value,
   onChangeText,
   placeholder,
   multiline = false,
-  type = "text", // "text" o "picker"
+  type = "text", // "text", "picker", "number", "file"
   items = [],
   ...props
 }) {
+  const handlePickFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*", // acepta cualquier tipo, podés filtrar ej: "image/*" o "application/pdf"
+      });
+      if (result.type === "success") {
+        onChangeText(result.uri); // guarda la URI del archivo
+      }
+    } catch (error) {
+      console.error("Error al seleccionar archivo:", error);
+    }
+  };
+
   return (
     <View style={styles.inputBox}>
       {type === "picker" ? (
@@ -28,6 +42,11 @@ export default function CustomInput({
               : <Picker.Item key={item.value || idx} label={item.label} value={item.value} />
           )}
         </Picker>
+      ) : type === "file" ? (
+        <>
+          <Button title={placeholder || "Seleccionar archivo"} onPress={handlePickFile} />
+          {value ? <TextInput value={value} editable={false} style={styles.input} /> : null}
+        </>
       ) : (
         <TextInput
           style={[
@@ -40,6 +59,7 @@ export default function CustomInput({
           multiline={multiline}
           numberOfLines={multiline ? 4 : 1}
           placeholderTextColor="#7a8fa6"
+          keyboardType={type === "number" ? "numeric" : "default"} // 👈 soporte numérico
           {...props}
         />
       )}
