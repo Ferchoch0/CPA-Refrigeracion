@@ -7,6 +7,9 @@
     "platforms": ["ios", "android"],
     "android": {
       "package": "com.cparefrigeracion.app"
+    },
+    "extra": {
+      "API_URL": "http://192.168.1.40/MIAPP/api/controller"
     }
   }
 }

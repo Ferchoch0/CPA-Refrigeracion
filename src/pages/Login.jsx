@@ -4,7 +4,9 @@ import {
   StyleSheet, Image, StatusBar, Alert
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
+const API_URL = Constants.manifest.extra.API_URL;
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -12,7 +14,7 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://192.168.0.184/MIAPP/api/controller/technicalController.php', {
+      const response = await fetch(`${API_URL}/technicalController.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

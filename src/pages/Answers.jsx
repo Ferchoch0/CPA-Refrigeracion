@@ -15,7 +15,9 @@ import { useRoute } from "@react-navigation/native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import Constants from 'expo-constants';
 
+const API_URL = Constants.manifest.extra.API_URL;
 function AnswersForm() {
     const [fields, setFields] = useState([]);
     const [answers, setAnswers] = useState({});
@@ -27,7 +29,7 @@ function AnswersForm() {
         const fetchFields = async () => {
             try {
                 const response = await fetch(
-                    `http://192.168.0.184/MIAPP/api/controller/equipmentsController.php?action=getQuestions&category_id=${categoryId}`
+                    `${API_URL}/equipmentsController.php?action=getQuestions&category_id=${categoryId}`
                 );
                 const data = await response.json();
 

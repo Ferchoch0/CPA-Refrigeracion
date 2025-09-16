@@ -15,7 +15,9 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import TipoEquipoScreen from "../components/TipoEquipo";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Constants from 'expo-constants';
 
+const API_URL = Constants.manifest.extra.API_URL;
 
 export default function EquiposScreen({ route, navigation: propNavigation }) {
   const { clientId } = route.params;
@@ -31,7 +33,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://192.168.0.184/MIAPP/api/controller/equipmentsController.php?action=getEquipmentsByClient&client_id=${clientId}`
+        `${API_URL}/equipmentsController.php?action=getEquipmentsByClient&client_id=${clientId}`
       );
       const data = await response.json();
 

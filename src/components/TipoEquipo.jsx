@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import CustomInput from "./CustomInput";
+import Constants from 'expo-constants';
+
+const API_URL = Constants.manifest.extra.API_URL;
 
 const tipos = [
   "Split", "Rooftop", "Centrales", "Cassette",
@@ -30,7 +33,7 @@ export default function TipoEquipoScreen({ clientId, onContinue, onCancel }) {
       const typeEquipId = typeEquipMap[tipo];
 
       const response = await fetch(
-        "http://192.168.0.184/MIAPP/api/controller/equipmentsController.php",
+        `${API_URL}/equipmentsController.php`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
