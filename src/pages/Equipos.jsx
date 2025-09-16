@@ -17,7 +17,7 @@ import TipoEquipoScreen from "../components/TipoEquipo";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Constants from 'expo-constants';
 
-const API_URL = Constants.manifest.extra.API_URL;
+const API_URL = Constants.expoConfig.extra.API_URL;
 
 export default function EquiposScreen({ route, navigation: propNavigation }) {
   const { clientId } = route.params;

@@ -17,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import Constants from 'expo-constants';
 
-const API_URL = Constants.manifest.extra.API_URL;
+const API_URL = Constants.expoConfig.extra.API_URL;
 function AnswersForm() {
     const [fields, setFields] = useState([]);
     const [answers, setAnswers] = useState({});

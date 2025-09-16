@@ -4,7 +4,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import { useNavigation } from '@react-navigation/native';
 import Constants from 'expo-constants';
 
-const API_URL = Constants.manifest.extra.API_URL;
+const API_URL = Constants.expoConfig.extra.API_URL;
 
 const TimelineItem = ({ item, isSelected, onPress, equipmentId }) => {
   const navigation = useNavigation();

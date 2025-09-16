@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Constants from 'expo-constants';
 
-const API_URL = Constants.manifest.extra.API_URL;
+const API_URL = Constants.expoConfig.extra.API_URL;
 const Navbar = () => {
     return (
         <SafeAreaView style={{ backgroundColor: "#003366" }}>
