@@ -66,5 +66,12 @@ class TechnicalModel
             return ['error' => 'ERR_DB_CONN'];
         }
     }
+
+    public function updateProfilePhoto($userId, $filename)
+    {
+        $stmt = $this->conn->prepare("UPDATE users SET profile_image = ? WHERE user_id = ?");
+        $stmt->bind_param("si", $filename, $userId);
+        return $stmt->execute();
+    }
 }
 ?>

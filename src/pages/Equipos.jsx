@@ -59,6 +59,10 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
   const cambiarEstadoEquipo = async () => {
     if (!equipoSeleccionado) return;
     try {
+      console.log("Datos enviados:", {
+        equipment_id: equipoSeleccionado.equipment_id,
+        status: nuevoEstado,
+      });
       const response = await fetch(`${API_URL}/equipmentsController.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,6 +83,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
       alert("Error de red");
     }
   };
+
   const [loading, setLoading] = useState(true);
 
   const fetchEquipos = async () => {

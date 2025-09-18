@@ -29,6 +29,7 @@ export default function LoginScreen({ navigation }) {
       if (result.success) {
         await AsyncStorage.setItem('user', JSON.stringify(result.user));
         navigation.navigate("Main", { user: result.user });
+        console.log({user: result.user})
       } else {
         Alert.alert("Error", result.error || "Credenciales inválidas");
       }

@@ -311,6 +311,18 @@ class EquipmentsModel
         }
     }
 
+    public function updateStatus($equipment_id, $status)
+    {
+        $stmt = $this->conn->prepare("UPDATE equipments SET status = ? WHERE equipment_id = ?");
+        $stmt->bind_param("si", $status, $equipment_id);
+
+        if (!$stmt->execute()) {
+            return ['error' => 'ERR_UPDATE_FAILED'];
+        }
+        $stmt->close();
+        return ['success' => true];
+    }
+
     public function addQuestions($fieldId, $name, $type, $description, $options = "")
     {
         try {

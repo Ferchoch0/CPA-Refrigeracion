@@ -55,11 +55,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'user' => [
                         'id' => $user['user_id'],
                         'email' => $user['email'],
-                        'name' => $user['name']
+                        'name' => $user['name'],
+                        'dni' => $user['dni'] ?? null,
+                        'phone' => $user['phone'] ?? null,
+                        'photo' => $user['profile_image'] ?? null
                     ]
                 ]);
             } else {
                 echo json_encode(['error' => 'ERR_INVALID_PASSWORD']);
+            }
+            break;
+
+        case 'uploadProfilePhoto':
+            if (!isset($_POST['userId']) || !isset($_FILES['photo'])) {
+                echo json_encode(['error' => 'ERR_MISSING_FIELDS']);
+                exit;
+            }
+
+            $userId = $_POST['userId'];
+            $photo = $_FILES['photo'];
+
+            // Crear carpeta si no existe
+            $uploadDir = __DIR__ . '/upload/profile/';
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            // Generar nombre único: profile+userId+timestamp
+            $ext = pathinfo($photo['name'], PATHINFO_EXTENSION);
+            $filename = "profile{$userId}_" . time() . "." . $ext;
+            $targetPath = $uploadDir . $filename;
+
+            if (move_uploaded_file($photo['tmp_name'], $targetPath)) {
+                // Actualizar en la DB
+                $updateResult = $technicalModel->updateProfilePhoto($userId, $filename); // Método que deberías tener en tu model
+
+                if ($updateResult) {
+                    echo json_encode([
+                        'success' => true,
+                        'filename' => $filename
+                    ]);
+                } else {
+                    echo json_encode(['error' => 'ERR_DB_UPDATE']);
+                }
+            } else {
+                echo json_encode(['error' => 'ERR_UPLOAD_FAILED']);
             }
             break;
     }

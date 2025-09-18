@@ -51,6 +51,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
+        case 'updateEquipmentStatus':
+            $equipment_id = $data['equipment_id'] ?? null;
+            $status = $data['status'] ?? null;
+
+            if ($equipment_id && $status) {
+                $result = $equipmentsModel->updateStatus($equipment_id, $status);
+                echo json_encode($result);
+            } else {
+                echo json_encode([
+                    "success" => false,
+                    "error" => "Faltan parámetros (equipment_id o status)"
+                ]);
+            }
+            break;
+
         case 'saveAnswers':
             if (isset($_POST['equipment_id'])) {
                 $equipmentId = intval($_POST['equipment_id']);

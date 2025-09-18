@@ -25,18 +25,23 @@ const Navbar = () => {
     );
 };
 
-const Header = ({ name }) => (
-    <View style={styles.header}>
-        <View>
-            <Text style={styles.greeting}>Hola, {name}</Text>
-            <Text style={styles.welcome}>Bienvenido de nuevo</Text>
-        </View>
-        <Image
-            source={{ uri: "https://randomuser.me/api/portraits/men/3.jpg" }}
-            style={styles.avatar}
-        />
+const Header = ({ user }) => (
+  <View style={styles.header}>
+    <View>
+      <Text style={styles.greeting}>Hola, {user?.name || "Usuario"}</Text>
+      <Text style={styles.welcome}>Bienvenido de nuevo</Text>
     </View>
+    <Image
+      source={
+        user?.photo
+          ? { uri: `${API_URL}/upload/profile/${user.photo}` }
+          : require("../../assets/image-profile.jpg")
+      }
+      style={styles.avatar}
+    />
+  </View>
 );
+
 
 const SearchBar = ({ data, onFilter }) => {
     const [search, setSearch] = useState("");
@@ -83,6 +88,7 @@ const ClientItem = ({ item, navigation }) => (
 );
 
 export default function HomeScreen() {
+    const [user, setUser] = useState(null);
     const [filteredClients, setFilteredClients] = useState([]);
     const [userName, setUserName] = useState("Usuario");
     const [userId, setUserId] = useState(null);
@@ -120,16 +126,16 @@ export default function HomeScreen() {
         const loadUser = async () => {
             const storedUser = await AsyncStorage.getItem('user');
             if (storedUser) {
-                const user = JSON.parse(storedUser);
-                setUserName(user.name);
-                setUserId(user.id);
+                const u = JSON.parse(storedUser);
+                setUser(u);              // ← guardo el objeto completo
+                setUserName(u.name);
+                setUserId(u.id);
 
-                fetchClients(user.id);
+                fetchClients(u.id);
             }
         };
         loadUser();
     }, []);
-
     return (
         <View style={styles.container}>
             <Navbar />
@@ -138,7 +144,7 @@ export default function HomeScreen() {
                 keyExtractor={(item, index) => index.toString()}
                 ListHeaderComponent={
                     <>
-                        <Header name={userName} />
+                        <Header user={user} />
                         <Calendar />
                         <View style={styles.mainContent}>
                             <SearchBar data={allClients} onFilter={setFilteredClients} />
