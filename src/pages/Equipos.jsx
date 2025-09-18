@@ -27,6 +27,58 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
   const [filteredEquipos, setFilteredEquipos] = useState([]); // lista filtrada
   const [estadoFiltro, setEstadoFiltro] = useState("Todos");
   const [modalVisible, setModalVisible] = useState(false);
+  // Estado para cambiar estado de equipo
+  const [modalEstadoVisible, setModalEstadoVisible] = useState(false);
+  const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
+  const [nuevoEstado, setNuevoEstado] = useState("");
+  // Estados posibles
+  const estadosDisponibles = [
+    {
+      label: "Activo",
+      color: "#2ecc40",
+      textColor: "#fff"
+    },
+    {
+      label: "Activo: Requiere revisión",
+      color: "#ffb300",
+      textColor: "#fff"
+    },
+    {
+      label: "Inactivo",
+      color: "#e74c3c",
+      textColor: "#fff"
+    },
+    {
+      label: "Dado de baja",
+      color: "#222",
+      textColor: "#fff"
+    },
+  ];
+
+  // Cambiar estado del equipo
+  const cambiarEstadoEquipo = async () => {
+    if (!equipoSeleccionado) return;
+    try {
+      const response = await fetch(`${API_URL}/equipmentsController.php`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "updateEquipmentStatus",
+          equipment_id: equipoSeleccionado.equipment_id,
+          status: nuevoEstado,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchEquipos();
+        setModalEstadoVisible(false);
+      } else {
+        alert(data.error || "No se pudo cambiar el estado");
+      }
+    } catch (err) {
+      alert("Error de red");
+    }
+  };
   const [loading, setLoading] = useState(true);
 
   const fetchEquipos = async () => {
@@ -108,6 +160,11 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
     <TouchableOpacity
       style={styles.card}
       onPress={() => navigation.navigate("FormGeneral", { equipo: item })}
+      onLongPress={() => {
+        setEquipoSeleccionado(item);
+        setNuevoEstado(item.status);
+        setModalEstadoVisible(true);
+      }}
       activeOpacity={0.85}
     >
       <View style={[styles.cardColor, getEstadoStyle(item.status)]} />
@@ -318,6 +375,119 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
             onContinue={handleContinue}
             onCancel={() => setModalVisible(false)}
           />
+        </Modal>
+
+        {/* Modal para cambiar estado de equipo */}
+        <Modal
+          visible={modalEstadoVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setModalEstadoVisible(false)}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.3)",
+            justifyContent: "center",
+            alignItems: "center"
+          }}>
+            <View style={{
+              backgroundColor: "#fff",
+              borderRadius: 20,
+              padding: 28,
+              width: 320,
+              alignItems: "center",
+              shadowColor: "#000",
+              shadowOpacity: 0.10,
+              shadowOffset: { width: 0, height: 2 },
+              shadowRadius: 8,
+              elevation: 8,
+            }}>
+              <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10, color: "#003366" }}>
+                Cambiar estado de equipo
+              </Text>
+              <View style={{ alignItems: "center", marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: "#0366c9ff" }}>
+                  {equipoSeleccionado?.name}
+                </Text>
+                {equipoSeleccionado?.unidad && (
+                  <Text style={{ fontSize: 15, color: "#666", marginTop: 2 }}>
+                    Unidad: {equipoSeleccionado.unidad}
+                  </Text>
+                )}
+              </View>
+              <View style={{ width: "100%", marginBottom: 10 }}>
+                {estadosDisponibles.map((estado) => {
+                  const seleccionado = nuevoEstado === estado.label;
+                  return (
+                    <TouchableOpacity
+                      key={estado.label}
+                      style={{
+                        padding: 12,
+                        marginVertical: 5,
+                        backgroundColor: seleccionado ? estado.color : "#f1f1f1",
+                        borderRadius: 10,
+                        width: "100%",
+                        alignItems: "center",
+                        borderWidth: seleccionado ? 2 : 1,
+                        borderColor: seleccionado ? "#003366" : "#e0e6ed",
+                        flexDirection: "row",
+                        justifyContent: "center"
+                      }}
+                      onPress={() => setNuevoEstado(estado.label)}
+                    >
+                      <View style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        backgroundColor: estado.color,
+                        marginRight: 10,
+                        borderWidth: seleccionado ? 2 : 0,
+                        borderColor: seleccionado ? "#fff" : "transparent"
+                      }} />
+                      <Text style={{
+                        color: seleccionado ? estado.textColor : "#333",
+                        fontWeight: seleccionado ? "bold" : "normal",
+                        fontSize: 15,
+                        letterSpacing: 0.5
+                      }}>
+                        {estado.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={{ flexDirection: "row", marginTop: 18 }}>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#0366c9ff",
+                    paddingVertical: 12,
+                    paddingHorizontal: 24,
+                    borderRadius: 10,
+                    marginRight: 10,
+                    shadowColor: "#0366c9ff",
+                    shadowOpacity: 0.12,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowRadius: 4,
+                    elevation: 2,
+                  }}
+                  onPress={cambiarEstadoEquipo}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>Guardar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#eee",
+                    paddingVertical: 12,
+                    paddingHorizontal: 24,
+                    borderRadius: 10,
+                  }}
+                  onPress={() => setModalEstadoVisible(false)}
+                >
+                  <Text style={{ color: "#333", fontSize: 16 }}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </Modal>
       </View>
     </View>

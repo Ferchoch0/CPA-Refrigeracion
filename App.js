@@ -9,6 +9,7 @@ import EquiposScreen from "./src/pages/Equipos";
 import TipoEquipoScreen from "./src/components/TipoEquipo";
 import FormGeneral from "./src/pages/FormGeneral";
 import AnswersScreen from "./src/pages/Answers";
+import ProfileScreen from "./src/pages/Profile"; // Importa tu pantalla de perfil
 
 const Stack = createNativeStackNavigator();
 
@@ -40,6 +41,13 @@ export default function App() {
 
         {/* Agrega Equipos como pantalla normal */}
         <Stack.Screen name="Preguntas" component={AnswersScreen} />
+
+        {/* Perfil como modal para animación de abajo hacia arriba */}
+        <Stack.Screen
+          name="Perfil"
+          component={ProfileScreen}
+          options={{ presentation: "modal", headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
