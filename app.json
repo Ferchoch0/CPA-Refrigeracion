@@ -12,7 +12,7 @@
       "package": "com.cparefrigeracion.app"
     },
     "extra": {
-      "API_URL": "https://c9f007062d07.ngrok-free.app/MIAPP/api/controller",
+      "API_URL": "http://192.168.1.40/CPA-Refrigeracion/api/controller",
       "eas": {
         "projectId": "07060b9f-255b-4316-b4ef-f04421e0cb4e"
       }
