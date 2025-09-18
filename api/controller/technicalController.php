@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_id'] = $user['user_id'];
                 $_SESSION['name'] = $user['name'];
                 $_SESSION['email'] = $user['email'];
-                
+
                 echo json_encode([
                     'success' => true,
                     'user' => [
@@ -66,6 +66,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $data = json_decode(file_get_contents('php://input'), true);
     $action = isset($data['action']) ? $data['action'] : (isset($_GET['action']) ? $_GET['action'] : '');
+
+    switch ($action) {
+        case 'getTechnicians':
+            $result = $technicalModel->getTechnicians();
+            echo json_encode($result);
+            break;
+    }
 } else {
     http_response_code(405);
     echo json_encode(['error' => 'Método no permitido']);

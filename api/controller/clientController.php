@@ -46,10 +46,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
+        case 'addClients':
+            $result = $clientModel->addClients($data);
+            echo json_encode($result);
+            break;
+
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $data = json_decode(file_get_contents('php://input'), true);
     $action = isset($data['action']) ? $data['action'] : (isset($_GET['action']) ? $_GET['action'] : '');
+
+    switch ($action) {
+        case 'getClientsTotal':
+
+            $clients = $clientModel->getClientsTotal();
+
+            if (isset($clients['error'])) {
+                echo json_encode(['error' => $clients['error']]);
+            } else {
+                echo json_encode([
+                    'success' => true,
+                    'clients' => $clients
+                ]);
+            }
+            break;
+
+    }
+
 } else {
     http_response_code(405);
     echo json_encode(['error' => 'Método no permitido']);

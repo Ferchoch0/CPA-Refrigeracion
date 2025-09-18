@@ -89,6 +89,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
+        case 'updateQuestion':
+            if (isset($data['id'], $data['name'], $data['type'], $data['description'])) {
+                $fieldId = intval($data['id']);
+                $name = $data['name'];
+                $type = $data['type'];
+                $description = $data['description'];
+                $options = isset($data['options']) ? $data['options'] : null;
+
+                $result = $equipmentsModel->updateQuestions($fieldId, $name, $type, $description, $options);
+
+                echo json_encode($result);
+            } else {
+                echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+            }
+            break;
+
+        case 'addQuestion':
+            if (isset($data['categoryId'], $data['name'], $data['type'], $data['description'])) {
+                $fieldId = intval($data['categoryId']);
+                $name = $data['name'];
+                $type = $data['type'];
+                $description = $data['description'];
+
+                $result = $equipmentsModel->addQuestions($fieldId, $name, $type, $description, $options);
+
+                echo json_encode($result);
+            } else {
+                echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+            }
+            break;
+
         default:
             echo json_encode(['error' => 'ERR_UNKNOWN_ACTION']);
             break;
@@ -122,6 +153,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (isset($_GET['category_id'])) {
                     $categoryId = intval($_GET['category_id']);
                     $result = $equipmentsModel->getQuestionsByCategory($categoryId);
+                    echo json_encode($result);
+                }
+            } catch (Exception $e) {
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            break;
+
+        case 'getQuestionById':
+            try {
+                if (isset($_GET['id'])) {
+                    $Id = intval($_GET['id']);
+                    $result = $equipmentsModel->getQuestionsById($Id);
                     echo json_encode($result);
                 }
             } catch (Exception $e) {

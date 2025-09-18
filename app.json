@@ -4,12 +4,18 @@
     "slug": "CPA-Refrigeracion",
     "version": "1.0.0",
     "icon": "./assets/logo2.png",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "android": {
       "package": "com.cparefrigeracion.app"
     },
     "extra": {
-      "API_URL": "http://192.168.0.184/MIAPP/api/controller"
+      "API_URL": "https://c9f007062d07.ngrok-free.app/MIAPP/api/controller",
+      "eas": {
+        "projectId": "07060b9f-255b-4316-b4ef-f04421e0cb4e"
+      }
     }
   }
 }

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 16-09-2025 a las 16:12:10
+-- Tiempo de generación: 18-09-2025 a las 05:14:26
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -76,7 +76,9 @@ CREATE TABLE `assignment` (
 INSERT INTO `assignment` (`assignment_id`, `client_id`, `user_id`) VALUES
 (4, 1, 2),
 (5, 2, 2),
-(6, 3, 2);
+(6, 3, 2),
+(7, 4, 2),
+(8, 5, 2);
 
 -- --------------------------------------------------------
 
@@ -115,7 +117,9 @@ CREATE TABLE `clients` (
 INSERT INTO `clients` (`client_id`, `company_name`, `personal_name`, `contact_person`, `password`, `address`, `phone`, `email`, `date_visit`) VALUES
 (1, 'Tech Solutions SRL', 'Carlos Gómez', 'Laura Martínez', '1234pass', 'Av. Corrientes 1234, CABA', '1134567890', 'info@techsolutions.com', '2025-09-20'),
 (2, 'Logística Express', 'María López', 'Juan Pérez', 'pass5678', 'Ruta 9 Km 45, Buenos Aires', '1145678901', 'contacto@logisticaexpress.com', '2025-09-22'),
-(3, 'Construcciones Delta', 'José Ramírez', 'Ana Torres', 'delta2025', 'Calle San Martín 450, Córdoba', '3511234567', 'delta@construcciones.com', '2025-09-25');
+(3, 'Construcciones Delta', 'José Ramírez', 'Ana Torres', 'delta2025', 'Calle San Martín 450, Córdoba', '3511234567', 'delta@construcciones.com', '2025-09-25'),
+(4, 'TecnoSoluciones S.A.', '', 'María López', NULL, 'Calle Falsa 123, Ciudad', '11-1234-5678', 'contacto@tecnosoluciones.com', '2025-09-17'),
+(5, 'Innova Soluciones SRL', '', 'Ana Gómez', NULL, 'Av. Siempre Viva 742, Córdoba', '+54 351 987-6543', 'info@innovasrl.com', '2025-09-18');
 
 -- --------------------------------------------------------
 
@@ -170,7 +174,10 @@ INSERT INTO `equipments` (`equipment_id`, `client_id`, `type_equip_id`, `code`, 
 (18, 3, 6, 'HR-003', 'Activo', ''),
 (19, 1, 6, 'HR-004', 'Activo', ''),
 (20, 1, 9, 'HC001', 'Activo', ''),
-(21, 1, 9, 'HC002', 'Activo', '');
+(21, 1, 9, 'HC002', 'Activo', ''),
+(22, 2, 7, 'FR003', 'Activo', ''),
+(23, 1, 4, 'CS002', 'Activo', 'interior'),
+(24, 1, 2, 'RT003', 'Activo', 'exterior');
 
 -- --------------------------------------------------------
 
@@ -319,7 +326,7 @@ INSERT INTO `fields_equipment` (`field_equip_id`, `field_category_id`, `name`, `
 (85, 6, 'Nivel de aceite (correcto / bajo / contaminado)', 'text', 'Nivel y estado del aceite del compresor'),
 (86, 6, 'Estado de aislamiento de tuberías (bueno / deteriorado)', 'text', 'Condición del aislamiento de las tuberías'),
 (87, 6, 'Estado general de cañerías (golpes, corrosión, fugas)', 'text', 'Revisión del estado general de las cañerías'),
-(88, 7, 'Funcionamiento de presostatos (alta / baja)', 'text', 'Revisión de funcionamiento de presostatos'),
+(88, 7, 'Funcionamiento de presostatos (alta / baja)', 'text', 'Revisión de funcionamiento de presostato'),
 (89, 7, 'Termostato / control electrónico', 'text', 'Verificación de termostato o control electrónico'),
 (90, 7, 'Protecciones eléctricas (disyuntores, contactores, relés)', 'text', 'Estado de protecciones eléctricas'),
 (91, 7, 'Estado del tablero eléctrico (OK / defectos)', 'text', 'Revisión del tablero eléctrico'),
@@ -334,7 +341,8 @@ INSERT INTO `fields_equipment` (`field_equip_id`, `field_category_id`, `name`, `
 (100, 8, 'Cambio de repuestos (filtros, contactores, relés, capacitores, etc.)', 'text', 'Registro de repuestos cambiados'),
 (101, 9, 'Estado general del equipo', 'text', 'Condición general del equipo tras la revisión'),
 (102, 9, 'Repuestos recomendados', 'text', 'Repuestos sugeridos para mantenimiento o reemplazo'),
-(103, 9, 'Próxima fecha de mantenimiento', 'date', 'Fecha sugerida para el próximo mantenimiento');
+(103, 9, 'Próxima fecha de mantenimiento', 'date', 'Fecha sugerida para el próximo mantenimiento'),
+(104, 9, 'Estados', 'text', 'estados');
 
 -- --------------------------------------------------------
 
@@ -382,11 +390,6 @@ INSERT INTO `field_options` (`option_id`, `field_equip_id`, `value`, `label`) VA
 (26, 43, 'softstarter', 'Soft Starter'),
 (27, 46, 'ok', 'OK'),
 (28, 46, 'fuera_de_rango', 'Fuera de rango'),
-(29, 49, 'axial', 'Axial'),
-(30, 49, 'helicoidal', 'Helicoidal'),
-(31, 49, 'centrifugo_simple', 'Centrífugo simple'),
-(32, 49, 'centrifugo_doble', 'Centrífugo doble'),
-(33, 49, 'tangencial', 'Tangencial'),
 (34, 51, 'plastico', 'Plástico'),
 (35, 51, 'aluminio', 'Aluminio'),
 (36, 51, 'acero', 'Acero'),
@@ -408,7 +411,12 @@ INSERT INTO `field_options` (`option_id`, `field_equip_id`, `value`, `label`) VA
 (52, 65, 'normal', 'Normal'),
 (53, 65, 'excesiva', 'Excesiva'),
 (54, 66, 'ok', 'OK'),
-(55, 66, 'desbalanceado', 'Desbalanceado');
+(55, 66, 'desbalanceado', 'Desbalanceado'),
+(58, 49, 'axial', 'Axial'),
+(59, 49, 'helicoidal', 'Helicoidal'),
+(60, 49, 'centrífugo_simple', 'Centrífugo_simple'),
+(61, 49, 'centrífugo_doble', 'Centrífugo_doble'),
+(62, 49, 'tangencial', 'Tangencial');
 
 -- --------------------------------------------------------
 
@@ -457,6 +465,14 @@ CREATE TABLE `roles` (
   `name` varchar(100) NOT NULL,
   `description` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `roles`
+--
+
+INSERT INTO `roles` (`rol_id`, `name`, `description`) VALUES
+(1, 'admin', 'Administrador con todos los permisos'),
+(2, 'tecnico', 'Técnico responsable de realizar visitas y registrar clientes');
 
 -- --------------------------------------------------------
 
@@ -516,7 +532,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `rol_id`, `name`, `email`, `password`, `phone`) VALUES
-(2, NULL, 'Tecnico', 'tecnico@example.com', '$2y$10$lj9x4L/jlIkyOqIBu897Tem7aoccBnACBLh7Abrak/8kJBd2yA7b2', '3512345678');
+(2, 2, 'Tecnico', 'tecnico@example.com', '$2y$10$lj9x4L/jlIkyOqIBu897Tem7aoccBnACBLh7Abrak/8kJBd2yA7b2', '3512345678'),
+(3, 1, 'Administrador', 'admin@example.com', '$2y$10$AqFyHATTtiqKYNXWhDYGWuiAQJAsQgBD95Uu38GkQH6fhWUCDLiWO', '1153434343');
 
 --
 -- Índices para tablas volcadas
@@ -655,7 +672,7 @@ ALTER TABLE `answers`
 -- AUTO_INCREMENT de la tabla `assignment`
 --
 ALTER TABLE `assignment`
-  MODIFY `assignment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `assignment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `audit`
@@ -667,7 +684,7 @@ ALTER TABLE `audit`
 -- AUTO_INCREMENT de la tabla `clients`
 --
 ALTER TABLE `clients`
-  MODIFY `client_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `client_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `data_equipments`
@@ -679,7 +696,7 @@ ALTER TABLE `data_equipments`
 -- AUTO_INCREMENT de la tabla `equipments`
 --
 ALTER TABLE `equipments`
-  MODIFY `equipment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `equipment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT de la tabla `equipments_history`
@@ -697,13 +714,13 @@ ALTER TABLE `fields_category`
 -- AUTO_INCREMENT de la tabla `fields_equipment`
 --
 ALTER TABLE `fields_equipment`
-  MODIFY `field_equip_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=104;
+  MODIFY `field_equip_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
 
 --
 -- AUTO_INCREMENT de la tabla `field_options`
 --
 ALTER TABLE `field_options`
-  MODIFY `option_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+  MODIFY `option_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
 -- AUTO_INCREMENT de la tabla `files`
@@ -727,7 +744,7 @@ ALTER TABLE `permissions`
 -- AUTO_INCREMENT de la tabla `roles`
 --
 ALTER TABLE `roles`
-  MODIFY `rol_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `rol_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `type_equipments`
@@ -739,7 +756,7 @@ ALTER TABLE `type_equipments`
 -- AUTO_INCREMENT de la tabla `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Restricciones para tablas volcadas

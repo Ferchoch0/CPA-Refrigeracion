@@ -121,14 +121,21 @@ class EquipmentsModel
     public function getQuestionsByCategory($categoryId)
     {
         $sql = "
-        SELECT fe.*, fo.option_id, fo.value AS option_value, fo.label AS option_label
-        FROM fields_equipment fe
-        LEFT JOIN field_options fo
-            ON fe.field_equip_id = fo.field_equip_id
-        WHERE fe.field_category_id = ?
-        ORDER BY fe.field_equip_id, fo.option_id
-    ";
-
+    SELECT 
+        fe.field_equip_id,
+        fe.field_category_id,
+        fe.name,
+        fe.description,
+        fe.fields_type,
+        fo.option_id,
+        fo.value AS option_value,
+        fo.label AS option_label
+    FROM fields_equipment fe
+    LEFT JOIN field_options fo
+        ON fe.field_equip_id = fo.field_equip_id
+    WHERE fe.field_category_id = ?
+    ORDER BY fe.field_equip_id, fo.option_id
+        ";
         $stmt = $this->conn->prepare($sql);
         if ($stmt) {
             $stmt->bind_param("i", $categoryId);
@@ -218,6 +225,149 @@ class EquipmentsModel
             }
         } else {
             return ['success' => false, 'error' => 'ERR_DB_CONN'];
+        }
+    }
+
+    public function getQuestionsById($id)
+    {
+        try {
+            // Traer la pregunta
+            $sql = "SELECT * FROM fields_equipment WHERE field_equip_id = ?";
+            $stmt = $this->conn->prepare($sql);
+            if (!$stmt) {
+                return ['error' => 'ERR_DB_CONN'];
+            }
+
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $question = $result->fetch_assoc();
+            $stmt->close();
+
+            if (!$question) {
+                return ['error' => 'ERR_QUESTION_NOT_FOUND'];
+            }
+
+            // Si es tipo select, traer opciones
+            if ($question['fields_type'] === 'select') {
+                $sqlOpts = "SELECT value, label FROM field_options WHERE field_equip_id = ?";
+                $stmtOpts = $this->conn->prepare($sqlOpts);
+                $stmtOpts->bind_param("i", $id);
+                $stmtOpts->execute();
+                $resOpts = $stmtOpts->get_result();
+                $options = $resOpts->fetch_all(MYSQLI_ASSOC);
+                $stmtOpts->close();
+
+                // Agregar las opciones al resultado
+                $question['options'] = $options;
+            }
+
+            return $question;
+        } catch (Exception $e) {
+            return ['error' => $e->getMessage()];
+        }
+    }
+
+    public function updateQuestions($fieldId, $name, $type, $description, $options = "")
+    {
+        try {
+            //Actualizar fields_equipment
+            $sql = "UPDATE fields_equipment
+                   SET name = ?, 
+                       fields_type = ?, 
+                       description = ? 
+                 WHERE field_equip_id = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param("sssi", $name, $type, $description, $fieldId);
+
+            if (!$stmt->execute()) {
+                return ['error' => 'ERR_UPDATE_FAILED'];
+            }
+            $stmt->close();
+
+            //Si es tipo select, actualizar opciones
+            if ($type === "select") {
+                // Borrar opciones antiguas
+                $del = $this->conn->prepare("DELETE FROM field_options WHERE field_equip_id = ?");
+                $del->bind_param("i", $fieldId);
+                $del->execute();
+                $del->close();
+
+                // Insertar nuevas opciones
+                $optsArray = array_map('trim', explode(",", $options)); // separar por coma y limpiar espacios
+                $ins = $this->conn->prepare("INSERT INTO field_options (field_equip_id, value, label) VALUES (?, ?, ?)");
+                foreach ($optsArray as $opt) {
+                    $value = $opt;
+                    $label = ucfirst($opt); // opcional: capitalizar la primera letra
+                    $ins->bind_param("iss", $fieldId, $value, $label);
+                    $ins->execute();
+                }
+                $ins->close();
+            }
+
+            return ['success' => true];
+        } catch (Exception $e) {
+            return ['error' => $e->getMessage()];
+        }
+    }
+
+    public function addQuestions($fieldId, $name, $type, $description, $options = "")
+    {
+        try {
+            // Insertar en fields_equipment
+            $stmt = $this->conn->prepare(
+                "INSERT INTO fields_equipment (field_category_id, name, fields_type, description) 
+             VALUES (?, ?, ?, ?)"
+            );
+
+            if (!$stmt) {
+                return [
+                    'success' => false,
+                    'error' => $this->conn->error
+                ];
+            }
+
+            $stmt->bind_param("isss", $fieldId, $name, $type, $description);
+
+            if (!$stmt->execute()) {
+                $error = $stmt->error;
+                $stmt->close();
+                return [
+                    'success' => false,
+                    'error' => $error
+                ];
+            }
+
+            $insertedId = $stmt->insert_id;
+            $stmt->close();
+
+            // Si el tipo es "select", insertar opciones
+            if ($type === "select" && !empty($options)) {
+                $optsArray = array_map('trim', explode(",", $options));
+
+                $ins = $this->conn->prepare(
+                    "INSERT INTO field_options (field_equip_id, value, label) VALUES (?, ?, ?)"
+                );
+
+                foreach ($optsArray as $opt) {
+                    $value = $opt;
+                    $label = ucfirst($opt);
+                    $ins->bind_param("iss", $insertedId, $value, $label);
+                    $ins->execute();
+                }
+
+                $ins->close();
+            }
+
+            return [
+                'success' => true,
+                'id' => $insertedId
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
         }
     }
 
