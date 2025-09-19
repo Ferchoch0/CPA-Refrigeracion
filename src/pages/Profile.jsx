@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Alert } fr
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import Constants from "expo-constants";
 
@@ -87,7 +88,7 @@ export default function Profile() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <SafeAreaView style={styles.header}>
         <View style={styles.topBar}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate("Inicio")}>
             <Ionicons name="arrow-back" size={28} color="#fff" />
@@ -106,7 +107,7 @@ export default function Profile() {
             <Ionicons name="camera" size={26} color="#fff" />
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
 
       {/* Info */}
       <View style={styles.infoBox}>
