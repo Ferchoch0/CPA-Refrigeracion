@@ -67,8 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'saveAnswers':
-            if (isset($_POST['equipment_id'])) {
+            if (isset($_POST['equipment_id'], $_POST['user_id'])) {
                 $equipmentId = intval($_POST['equipment_id']);
+                $userId = intval($_POST['user_id']);
                 $answers = [];
 
                 foreach ($_POST as $key => $val) {
@@ -81,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!empty($_FILES)) {
                     foreach ($_FILES as $key => $file) {
                         if ($file['error'] === UPLOAD_ERR_OK) {
-                            $uploadDir = __DIR__ . "/../../uploads/"; // ruta a tu carpeta
+                            $uploadDir = __DIR__ . "/../../uploads/";
                             if (!file_exists($uploadDir)) {
                                 mkdir($uploadDir, 0777, true);
                             }
@@ -97,22 +98,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                $result = $equipmentsModel->saveAnswers($equipmentId, $answers);
+                $result = $equipmentsModel->saveAnswers($equipmentId, $answers, $userId);
                 echo json_encode($result);
             } else {
                 echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
             }
             break;
 
+
         case 'updateQuestion':
-            if (isset($data['id'], $data['name'], $data['type'], $data['description'])) {
+            if (isset($data['id'], $data['name'], $data['type'], $data['description'], $data['user_id'])) {
                 $fieldId = intval($data['id']);
                 $name = $data['name'];
                 $type = $data['type'];
                 $description = $data['description'];
                 $options = isset($data['options']) ? $data['options'] : null;
+                $user_id = intval($data['user_id']);
 
-                $result = $equipmentsModel->updateQuestions($fieldId, $name, $type, $description, $options);
+                $result = $equipmentsModel->updateQuestions($fieldId, $name, $type, $description, $options, $user_id);
 
                 echo json_encode($result);
             } else {
@@ -121,13 +124,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'addQuestion':
-            if (isset($data['categoryId'], $data['name'], $data['type'], $data['description'])) {
-                $fieldId = intval($data['categoryId']);
+            if (isset($data['categoryId'], $data['name'], $data['type'], $data['description'], $data['user_id'])) {
+                $fieldCategoryId = intval($data['categoryId']);
                 $name = $data['name'];
                 $type = $data['type'];
                 $description = $data['description'];
+                $options = isset($data['options']) ? $data['options'] : null;
+                $user_id = intval($data['user_id']);
 
-                $result = $equipmentsModel->addQuestions($fieldId, $name, $type, $description, $options);
+                $result = $equipmentsModel->addQuestions($fieldCategoryId, $name, $type, $description, $options, $user_id);
 
                 echo json_encode($result);
             } else {

@@ -10,6 +10,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import { useRoute } from "@react-navigation/native";
 import { Picker } from "@react-native-picker/picker";
@@ -69,9 +70,19 @@ function AnswersForm() {
 
     const handleSubmit = async () => {
         try {
+            const storedUser = await AsyncStorage.getItem("user");
+            if (!storedUser) {
+                alert("No se encontró el usuario en la sesión");
+                return;
+            }
+
+            const user = JSON.parse(storedUser);
+            const userId = user.id;
+
             const formData = new FormData();
             formData.append("action", "saveAnswers");
             formData.append("equipment_id", equipmentId);
+            formData.append("user_id", userId);
 
             for (const [fieldId, value] of Object.entries(answers)) {
                 if (typeof value === "string" && value.startsWith("file://")) {
@@ -86,10 +97,13 @@ function AnswersForm() {
                 }
             }
 
-            const response = await fetch("http://192.168.0.184/MIAPP/api/controller/equipmentsController.php", {
-                method: "POST",
-                body: formData,
-            });
+            const response = await fetch(
+                `${API_URL}/equipmentsController.php`,
+                {
+                    method: "POST",
+                    body: formData,
+                }
+            );
 
             const data = await response.json();
 

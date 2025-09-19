@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 18-09-2025 a las 05:14:26
+-- Tiempo de generación: 19-09-2025 a las 19:29:28
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -39,12 +39,6 @@ CREATE TABLE `answers` (
 --
 
 INSERT INTO `answers` (`answers_id`, `equipments_id`, `field_equip_id`, `value`) VALUES
-(1, 1, 101, 'no'),
-(2, 1, 102, 'no'),
-(3, 1, 101, 'no'),
-(4, 1, 102, 'no'),
-(5, 1, 101, 'no'),
-(6, 1, 102, 'no'),
 (7, 7, 101, 'no'),
 (8, 7, 102, 'no'),
 (9, 1, 1, 'uno'),
@@ -55,7 +49,11 @@ INSERT INTO `answers` (`answers_id`, `equipments_id`, `field_equip_id`, `value`)
 (14, 1, 101, 'si'),
 (15, 1, 102, 'si'),
 (16, 21, 101, 'no'),
-(17, 21, 102, 'si');
+(17, 21, 102, 'si'),
+(27, 23, 101, 'no'),
+(28, 23, 102, 'si'),
+(29, 23, 104, '23'),
+(33, 25, 1, 'prueba');
 
 -- --------------------------------------------------------
 
@@ -78,7 +76,10 @@ INSERT INTO `assignment` (`assignment_id`, `client_id`, `user_id`) VALUES
 (5, 2, 2),
 (6, 3, 2),
 (7, 4, 2),
-(8, 5, 2);
+(8, 5, 2),
+(9, 6, 4),
+(10, 7, 4),
+(11, 8, 4);
 
 -- --------------------------------------------------------
 
@@ -89,8 +90,19 @@ INSERT INTO `assignment` (`assignment_id`, `client_id`, `user_id`) VALUES
 CREATE TABLE `audit` (
   `audit_id` int(11) NOT NULL,
   `user_id` int(11) DEFAULT NULL,
-  `action` text NOT NULL
+  `action` text NOT NULL,
+  `date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status_action` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `audit`
+--
+
+INSERT INTO `audit` (`audit_id`, `user_id`, `action`, `date`, `status_action`) VALUES
+(2, 3, 'Alta de cliente: Metalúrgica Delta SA', '2025-09-19 16:32:05', 'success'),
+(3, 3, 'Actualización de técnico ID: 2', '2025-09-19 17:12:58', 'success'),
+(4, 3, 'Actualización de pregunta ID: 101', '2025-09-19 17:25:10', 'success');
 
 -- --------------------------------------------------------
 
@@ -119,7 +131,10 @@ INSERT INTO `clients` (`client_id`, `company_name`, `personal_name`, `contact_pe
 (2, 'Logística Express', 'María López', 'Juan Pérez', 'pass5678', 'Ruta 9 Km 45, Buenos Aires', '1145678901', 'contacto@logisticaexpress.com', '2025-09-22'),
 (3, 'Construcciones Delta', 'José Ramírez', 'Ana Torres', 'delta2025', 'Calle San Martín 450, Córdoba', '3511234567', 'delta@construcciones.com', '2025-09-25'),
 (4, 'TecnoSoluciones S.A.', '', 'María López', NULL, 'Calle Falsa 123, Ciudad', '11-1234-5678', 'contacto@tecnosoluciones.com', '2025-09-17'),
-(5, 'Innova Soluciones SRL', '', 'Ana Gómez', NULL, 'Av. Siempre Viva 742, Córdoba', '+54 351 987-6543', 'info@innovasrl.com', '2025-09-18');
+(5, 'Innova Soluciones SRL', '', 'Ana Gómez', NULL, 'Av. Siempre Viva 742, Córdoba', '+54 351 987-6543', 'info@innovasrl.com', '2025-09-18'),
+(6, 'Cliente de Luna', '', 'Marcela', NULL, 'Calle Falsa 123', '115354556', 'cliente@example.com', '2025-09-26'),
+(7, 'Metalúrgica Delta SA', '', 'Carlos Ramirez', NULL, 'Av. Siempre Viva 742', '1145678910', 'contacto@delta.com', '2025-09-30'),
+(8, 'Metalúrgica Delta SA', '', 'Carlos Ramirez', NULL, 'Av. Siempre Viva 742', '1145678910', 'contacto@delta.com', '2025-09-30');
 
 -- --------------------------------------------------------
 
@@ -154,7 +169,7 @@ CREATE TABLE `equipments` (
 --
 
 INSERT INTO `equipments` (`equipment_id`, `client_id`, `type_equip_id`, `code`, `status`, `placement`) VALUES
-(1, 1, 1, 'SP-001', 'Activo', NULL),
+(1, 1, 1, 'SP-001', 'Activo: Requiere revisión', NULL),
 (2, 1, 5, 'CF-001', 'Inactivo', NULL),
 (3, 2, 2, 'RT-001', 'Activo', NULL),
 (4, 2, 7, 'FR-001', 'Activo', NULL),
@@ -162,10 +177,10 @@ INSERT INTO `equipments` (`equipment_id`, `client_id`, `type_equip_id`, `code`, 
 (6, 3, 8, 'EX-001', 'Activo', NULL),
 (7, 1, 5, 'CF-002', 'Activo', ''),
 (8, 1, 5, 'CF-003', 'Activo', ''),
-(9, 1, 1, 'SP-002', 'Activo', 'interior'),
+(9, 1, 1, 'SP-002', 'Dado de baja', 'interior'),
 (10, 1, 6, 'HR-001', 'Activo', ''),
 (11, 1, 7, 'FR-002', 'Activo', ''),
-(12, 1, 8, 'EX-002', 'Activo', ''),
+(12, 1, 8, 'EX-002', 'Inactivo', ''),
 (13, 3, 8, 'EX-003', 'Activo', ''),
 (14, 2, 4, 'CS-001', 'Activo', 'interior'),
 (15, 2, 6, 'HR-002', 'Activo', ''),
@@ -177,7 +192,8 @@ INSERT INTO `equipments` (`equipment_id`, `client_id`, `type_equip_id`, `code`, 
 (21, 1, 9, 'HC002', 'Activo', ''),
 (22, 2, 7, 'FR003', 'Activo', ''),
 (23, 1, 4, 'CS002', 'Activo', 'interior'),
-(24, 1, 2, 'RT003', 'Activo', 'exterior');
+(24, 1, 2, 'RT003', 'Dado de baja', 'exterior'),
+(25, 6, 4, 'CS003', 'Activo', 'exterior');
 
 -- --------------------------------------------------------
 
@@ -189,8 +205,20 @@ CREATE TABLE `equipments_history` (
   `history_equip_id` int(11) NOT NULL,
   `user_id` int(11) DEFAULT NULL,
   `equipment_id` int(11) DEFAULT NULL,
-  `action` text DEFAULT NULL
+  `action` text DEFAULT NULL,
+  `date` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `equipments_history`
+--
+
+INSERT INTO `equipments_history` (`history_equip_id`, `user_id`, `equipment_id`, `action`, `date`) VALUES
+(2, 2, 23, 'Llenado de formulario', '2025-09-19 05:47:28'),
+(3, 2, 23, 'Llenado de formulario', '2025-09-19 05:47:53'),
+(4, 2, 23, 'Llenado de formulario', '2025-09-19 05:48:21'),
+(5, 2, 23, 'Llenado de formulario', '2025-09-19 06:01:53'),
+(6, 4, 25, 'Llenado de formulario', '2025-09-19 06:09:14');
 
 -- --------------------------------------------------------
 
@@ -339,7 +367,7 @@ INSERT INTO `fields_equipment` (`field_equip_id`, `field_category_id`, `name`, `
 (98, 8, 'Carga de gas (indicar cantidad)', 'text', 'Cantidad de gas refrigerante cargada'),
 (99, 8, 'Recuperación de gas (indicar cantidad)', 'text', 'Cantidad de gas recuperada'),
 (100, 8, 'Cambio de repuestos (filtros, contactores, relés, capacitores, etc.)', 'text', 'Registro de repuestos cambiados'),
-(101, 9, 'Estado general del equipo', 'text', 'Condición general del equipo tras la revisión'),
+(101, 9, 'Estado general del equipo elegido', 'text', 'Condición general del equipo tras la revisión'),
 (102, 9, 'Repuestos recomendados', 'text', 'Repuestos sugeridos para mantenimiento o reemplazo'),
 (103, 9, 'Próxima fecha de mantenimiento', 'date', 'Fecha sugerida para el próximo mantenimiento'),
 (104, 9, 'Estados', 'text', 'estados');
@@ -522,18 +550,23 @@ CREATE TABLE `users` (
   `user_id` int(11) NOT NULL,
   `rol_id` int(11) DEFAULT NULL,
   `name` varchar(100) NOT NULL,
+  `dni` varchar(100) DEFAULT NULL,
   `email` varchar(150) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `phone` varchar(50) DEFAULT NULL
+  `phone` varchar(50) DEFAULT NULL,
+  `profile_image` varchar(255) DEFAULT 'image-profile',
+  `status` enum('disponible','en_servicio','desconectado') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `users`
 --
 
-INSERT INTO `users` (`user_id`, `rol_id`, `name`, `email`, `password`, `phone`) VALUES
-(2, 2, 'Tecnico', 'tecnico@example.com', '$2y$10$lj9x4L/jlIkyOqIBu897Tem7aoccBnACBLh7Abrak/8kJBd2yA7b2', '3512345678'),
-(3, 1, 'Administrador', 'admin@example.com', '$2y$10$AqFyHATTtiqKYNXWhDYGWuiAQJAsQgBD95Uu38GkQH6fhWUCDLiWO', '1153434343');
+INSERT INTO `users` (`user_id`, `rol_id`, `name`, `dni`, `email`, `password`, `phone`, `profile_image`, `status`) VALUES
+(2, 2, 'Juan Carlos', '44646567', 'tecnico@example.com', '$2y$10$lj9x4L/jlIkyOqIBu897Tem7aoccBnACBLh7Abrak/8kJBd2yA7b2', '3512345678', 'profile2_1758177176.jpg', 'disponible'),
+(3, 1, 'Administrador', NULL, 'admin@example.com', '$2y$10$AqFyHATTtiqKYNXWhDYGWuiAQJAsQgBD95Uu38GkQH6fhWUCDLiWO', '1153434343', NULL, 'disponible'),
+(4, 2, 'Luna', '12345678', 'luna@example.com', '$2y$10$fNUzyeZFRhX.smY2wG7WB.0.0APE911/tI4G1tno1VL1ZJAJ831EK', '1153444345', 'profile4_1758261916.jpg', 'disponible'),
+(5, 2, 'Mati', '85397522', 'mati@example.com', '$2y$10$8cUUEtbzaYTomoD8I9V.a.ew1KFZjuG2iKlFYMKvbisJIahR4PfoG', '1154356645', 'image-profile', 'disponible');
 
 --
 -- Índices para tablas volcadas
@@ -544,7 +577,7 @@ INSERT INTO `users` (`user_id`, `rol_id`, `name`, `email`, `password`, `phone`) 
 --
 ALTER TABLE `answers`
   ADD PRIMARY KEY (`answers_id`),
-  ADD KEY `fk_answers_equipment` (`equipments_id`),
+  ADD UNIQUE KEY `unique_answer` (`equipments_id`,`field_equip_id`),
   ADD KEY `fk_answers_field` (`field_equip_id`);
 
 --
@@ -666,25 +699,25 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT de la tabla `answers`
 --
 ALTER TABLE `answers`
-  MODIFY `answers_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `answers_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT de la tabla `assignment`
 --
 ALTER TABLE `assignment`
-  MODIFY `assignment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `assignment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT de la tabla `audit`
 --
 ALTER TABLE `audit`
-  MODIFY `audit_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `audit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de la tabla `clients`
 --
 ALTER TABLE `clients`
-  MODIFY `client_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `client_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `data_equipments`
@@ -696,13 +729,13 @@ ALTER TABLE `data_equipments`
 -- AUTO_INCREMENT de la tabla `equipments`
 --
 ALTER TABLE `equipments`
-  MODIFY `equipment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `equipment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT de la tabla `equipments_history`
 --
 ALTER TABLE `equipments_history`
-  MODIFY `history_equip_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `history_equip_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `fields_category`
@@ -756,7 +789,7 @@ ALTER TABLE `type_equipments`
 -- AUTO_INCREMENT de la tabla `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- Restricciones para tablas volcadas

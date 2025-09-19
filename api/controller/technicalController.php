@@ -66,6 +66,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
+        case 'addTechnician':
+            $result = $technicalModel->addTechnician($data);
+            echo json_encode($result);
+            break; 
+            
+        case 'updateTechnician':
+            $result = $technicalModel->updateTechnician($data);
+            echo json_encode($result);
+            break; 
+
         case 'uploadProfilePhoto':
             if (!isset($_POST['userId']) || !isset($_FILES['photo'])) {
                 echo json_encode(['error' => 'ERR_MISSING_FIELDS']);
@@ -113,6 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode($result);
             break;
     }
+
+    
 } else {
     http_response_code(405);
     echo json_encode(['error' => 'Método no permitido']);
