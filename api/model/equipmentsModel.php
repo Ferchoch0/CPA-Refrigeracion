@@ -179,11 +179,12 @@ class EquipmentsModel
 
     }
 
-    public function saveAnswers($equipmentId, $answers)
+    public function saveAnswers($equipmentId, $answers, $userId)
     {
         $this->conn->begin_transaction();
 
         try {
+            // Guardar respuestas
             $sql = "INSERT INTO answers (equipments_id, field_equip_id, value) 
                 VALUES (?, ?, ?)
                 ON DUPLICATE KEY UPDATE value = VALUES(value)";
@@ -199,6 +200,16 @@ class EquipmentsModel
             }
 
             $stmt->close();
+
+            // Insertar acción en historial (una sola vez)
+            $action = "Llenado de formulario";
+            $sqlHist = "INSERT INTO equipments_history (user_id, equipment_id, action) 
+                    VALUES (?, ?, ?)";
+            $stmtHist = $this->conn->prepare($sqlHist);
+            $stmtHist->bind_param("iis", $userId, $equipmentId, $action);
+            $stmtHist->execute();
+            $stmtHist->close();
+
             $this->conn->commit();
 
             return ['success' => true];
@@ -268,15 +279,17 @@ class EquipmentsModel
         }
     }
 
-    public function updateQuestions($fieldId, $name, $type, $description, $options = "")
+    public function updateQuestions($fieldId, $name, $type, $description, $options = "", $user_id = null)
     {
         try {
+            if (empty($fieldId) || empty($name) || empty($type) || !$user_id) {
+                return ['error' => 'ERR_MISSING_FIELDS'];
+            }
+
             //Actualizar fields_equipment
             $sql = "UPDATE fields_equipment
-                   SET name = ?, 
-                       fields_type = ?, 
-                       description = ? 
-                 WHERE field_equip_id = ?";
+                SET name = ?, fields_type = ?, description = ? 
+                WHERE field_equip_id = ?";
             $stmt = $this->conn->prepare($sql);
             $stmt->bind_param("sssi", $name, $type, $description, $fieldId);
 
@@ -294,15 +307,29 @@ class EquipmentsModel
                 $del->close();
 
                 // Insertar nuevas opciones
-                $optsArray = array_map('trim', explode(",", $options)); // separar por coma y limpiar espacios
+                $optsArray = array_map('trim', explode(",", $options));
                 $ins = $this->conn->prepare("INSERT INTO field_options (field_equip_id, value, label) VALUES (?, ?, ?)");
                 foreach ($optsArray as $opt) {
                     $value = $opt;
-                    $label = ucfirst($opt); // opcional: capitalizar la primera letra
+                    $label = ucfirst($opt);
                     $ins->bind_param("iss", $fieldId, $value, $label);
                     $ins->execute();
                 }
                 $ins->close();
+            }
+
+            // Insertar en auditoría
+            $action = "Actualización de pregunta ID: " . $fieldId;
+            $statusAction = "success";
+
+            $stmt2 = $this->conn->prepare("
+            INSERT INTO audit (user_id, action, status_action, date)
+            VALUES (?, ?, ?, NOW())
+        ");
+            if ($stmt2) {
+                $stmt2->bind_param("iss", $user_id, $action, $statusAction);
+                $stmt2->execute();
+                $stmt2->close();
             }
 
             return ['success' => true];
@@ -310,6 +337,7 @@ class EquipmentsModel
             return ['error' => $e->getMessage()];
         }
     }
+
 
     public function updateStatus($equipment_id, $status)
     {
@@ -323,43 +351,42 @@ class EquipmentsModel
         return ['success' => true];
     }
 
-    public function addQuestions($fieldId, $name, $type, $description, $options = "")
+    public function addQuestions($fieldCategoryId, $name, $type, $description, $options = "", $user_id = null)
     {
         try {
-            // Insertar en fields_equipment
-            $stmt = $this->conn->prepare(
-                "INSERT INTO fields_equipment (field_category_id, name, fields_type, description) 
-             VALUES (?, ?, ?, ?)"
-            );
-
-            if (!$stmt) {
-                return [
-                    'success' => false,
-                    'error' => $this->conn->error
-                ];
+            // Validación mínima
+            if (empty($fieldCategoryId) || empty($name) || empty($type) || !$user_id) {
+                return ['error' => 'ERR_MISSING_FIELDS'];
             }
 
-            $stmt->bind_param("isss", $fieldId, $name, $type, $description);
+            // Insertar en fields_equipment
+            $stmt = $this->conn->prepare("
+            INSERT INTO fields_equipment (field_category_id, name, fields_type, description) 
+            VALUES (?, ?, ?, ?)
+        ");
+
+            if (!$stmt) {
+                return ['error' => 'ERR_DB_PREPARE'];
+            }
+
+            $stmt->bind_param("isss", $fieldCategoryId, $name, $type, $description);
 
             if (!$stmt->execute()) {
                 $error = $stmt->error;
                 $stmt->close();
-                return [
-                    'success' => false,
-                    'error' => $error
-                ];
+                return ['error' => $error];
             }
 
-            $insertedId = $stmt->insert_id;
+            $insertedId = $this->conn->insert_id;
             $stmt->close();
 
             // Si el tipo es "select", insertar opciones
             if ($type === "select" && !empty($options)) {
                 $optsArray = array_map('trim', explode(",", $options));
 
-                $ins = $this->conn->prepare(
-                    "INSERT INTO field_options (field_equip_id, value, label) VALUES (?, ?, ?)"
-                );
+                $ins = $this->conn->prepare("
+                INSERT INTO field_options (field_equip_id, value, label) VALUES (?, ?, ?)
+            ");
 
                 foreach ($optsArray as $opt) {
                     $value = $opt;
@@ -371,15 +398,23 @@ class EquipmentsModel
                 $ins->close();
             }
 
-            return [
-                'success' => true,
-                'id' => $insertedId
-            ];
+            // Insertar en auditoría
+            $action = "Alta de pregunta: " . $name;
+            $statusAction = "success";
+
+            $stmt2 = $this->conn->prepare("
+            INSERT INTO audit (user_id, action, status_action, date)
+            VALUES (?, ?, ?, NOW())
+        ");
+            if ($stmt2) {
+                $stmt2->bind_param("iss", $user_id, $action, $statusAction);
+                $stmt2->execute();
+                $stmt2->close();
+            }
+
+            return ['success' => true, 'id' => $insertedId];
         } catch (Exception $e) {
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
+            return ['error' => $e->getMessage()];
         }
     }
 

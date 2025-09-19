@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            if ((int)$user['rol_id'] !== 1) {
+            if ((int) $user['rol_id'] !== 1) {
                 echo json_encode(['error' => 'ERR_NOT_ADMIN']);
                 exit;
             }
@@ -68,6 +68,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'rol_id' => $user['rol_id']
                 ]
             ]);
+            break;
+
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $action = $_GET['action'] ?? '';
+
+    switch ($action) {
+        case 'getAudits':
+            $result = $adminModel->getAudits();
+            echo json_encode($result);
             break;
     }
 }
