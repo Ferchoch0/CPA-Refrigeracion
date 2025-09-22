@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 22-09-2025 a las 20:45:00
+-- Tiempo de generación: 23-09-2025 a las 00:30:34
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -53,7 +53,26 @@ INSERT INTO `answers` (`answers_id`, `equipments_id`, `field_equip_id`, `value`)
 (27, 23, 101, 'no'),
 (28, 23, 102, 'si'),
 (29, 23, 104, '23'),
-(33, 25, 1, 'prueba');
+(33, 25, 1, 'prueba'),
+(36, 7, 104, 'kapcan'),
+(39, 7, 103, '2025-09-22'),
+(41, 10, 1, 'Samsung'),
+(42, 10, 2, 'RT38K5932SL'),
+(43, 10, 3, 'SN-HELR-20250922-001'),
+(44, 10, 5, 'HR-0458'),
+(45, 10, 6, '320 W'),
+(46, 10, 8, '0.15 kW'),
+(47, 10, 9, '1.2'),
+(48, 10, 10, '220v - 1F - 50Hz'),
+(49, 10, 11, 'rotativo'),
+(50, 10, 12, '1'),
+(51, 10, 15, 'Suniso GS 32 (ISO VG 32, mineral)'),
+(52, 10, 16, 'capilar'),
+(53, 10, 18, '2022'),
+(54, 10, 19, '2023'),
+(55, 10, 20, 'Cocina Principal'),
+(56, 10, 21, 'aire'),
+(265, 10, 4, 'equip10.jpeg');
 
 -- --------------------------------------------------------
 
@@ -716,7 +735,16 @@ INSERT INTO `equipments` (`equipment_id`, `client_id`, `type_equip_id`, `code`, 
 (22, 2, 7, 'FR003', 'Activo', ''),
 (23, 1, 4, 'CS002', 'Activo', 'interior'),
 (24, 1, 2, 'RT003', 'Dado de baja', 'exterior'),
-(25, 6, 4, 'CS003', 'Activo', 'exterior');
+(25, 6, 4, 'CS003', 'Activo', 'exterior'),
+(26, 5, 1, 'SP004', 'Activo', 'interior'),
+(27, 5, 1, 'SP004', 'Activo', 'exterior'),
+(28, 5, 2, 'RT004', 'Activo', 'interior'),
+(29, 5, 2, 'RT004', 'Activo', 'exterior'),
+(30, 5, 1, 'SP005', 'Activo', 'interior'),
+(31, 5, 1, 'SP005', 'Activo', 'exterior'),
+(32, 5, 4, 'CS004', 'Activo', 'interior'),
+(33, 5, 4, 'CS004', 'Activo', 'exterior'),
+(34, 5, 6, 'HR005', 'Activo', NULL);
 
 -- --------------------------------------------------------
 
@@ -741,7 +769,31 @@ INSERT INTO `equipments_history` (`history_equip_id`, `user_id`, `equipment_id`,
 (3, 2, 23, 'Llenado de formulario', '2025-09-19 05:47:53'),
 (4, 2, 23, 'Llenado de formulario', '2025-09-19 05:48:21'),
 (5, 2, 23, 'Llenado de formulario', '2025-09-19 06:01:53'),
-(6, 4, 25, 'Llenado de formulario', '2025-09-19 06:09:14');
+(6, 4, 25, 'Llenado de formulario', '2025-09-19 06:09:14'),
+(7, 2, 7, 'Llenado de formulario', '2025-09-22 19:17:08'),
+(8, 2, 7, 'Llenado de formulario', '2025-09-22 19:38:54'),
+(9, 2, 10, 'Llenado de formulario', '2025-09-22 19:52:08'),
+(10, 2, 10, 'Llenado de formulario', '2025-09-22 20:08:47'),
+(11, 2, 10, 'Llenado de formulario', '2025-09-22 20:10:49'),
+(12, 2, 10, 'Llenado de formulario', '2025-09-22 20:21:24'),
+(13, 2, 10, 'Llenado de formulario', '2025-09-22 20:22:26'),
+(14, 2, 10, 'Llenado de formulario', '2025-09-22 20:33:37'),
+(15, 2, 10, 'Llenado de formulario', '2025-09-22 21:03:23'),
+(16, 2, 10, 'Se actualizó la foto del equipo', '2025-09-22 21:23:44'),
+(17, 2, 10, 'Llenado de formulario', '2025-09-22 21:23:44'),
+(18, 2, 10, 'Se actualizó la foto del equipo', '2025-09-22 21:26:41'),
+(19, 2, 10, 'Llenado de formulario', '2025-09-22 21:26:41'),
+(20, 2, 10, 'Se actualizó la foto del equipo', '2025-09-22 21:27:01'),
+(21, 2, 10, 'Llenado de formulario', '2025-09-22 21:27:01'),
+(22, 2, 10, 'Se actualizó la foto del equipo', '2025-09-22 21:29:32'),
+(23, 2, 10, 'Llenado de formulario', '2025-09-22 21:29:32'),
+(24, 2, 10, 'Se actualizó la foto del equipo', '2025-09-22 21:29:43'),
+(25, 2, 10, 'Llenado de formulario', '2025-09-22 21:29:43'),
+(26, 2, 10, 'Se actualizó la foto del equipo', '2025-09-22 21:29:54'),
+(27, 2, 10, 'Llenado de formulario', '2025-09-22 21:29:54'),
+(28, 2, 10, 'Llenado de formulario', '2025-09-22 21:36:10'),
+(29, 2, 10, 'Llenado de formulario', '2025-09-22 21:39:45'),
+(30, 2, 10, 'Llenado de formulario', '2025-09-22 21:48:27');
 
 -- --------------------------------------------------------
 
@@ -995,8 +1047,16 @@ CREATE TABLE `files` (
 CREATE TABLE `images` (
   `image_id` int(11) NOT NULL,
   `equipment_id` int(11) DEFAULT NULL,
-  `name` varchar(150) DEFAULT NULL
+  `name` varchar(150) DEFAULT NULL,
+  `date` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `images`
+--
+
+INSERT INTO `images` (`image_id`, `equipment_id`, `name`, `date`) VALUES
+(9, 10, 'equip10.jpg', '2025-09-22 20:59:18');
 
 -- --------------------------------------------------------
 
@@ -1050,23 +1110,24 @@ CREATE TABLE `rol_permissions` (
 CREATE TABLE `type_equipments` (
   `type_equip_id` int(11) NOT NULL,
   `name` varchar(150) NOT NULL,
-  `initial` varchar(50) DEFAULT NULL
+  `initial` varchar(50) DEFAULT NULL,
+  `requires_unit` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `type_equipments`
 --
 
-INSERT INTO `type_equipments` (`type_equip_id`, `name`, `initial`) VALUES
-(1, 'Split', 'SP'),
-(2, 'Rooftop', 'RT'),
-(3, 'Centrales', 'CT'),
-(4, 'Cassette', 'CS'),
-(5, 'Camara Frigorifica', 'CF'),
-(6, 'Heladera Residencial', 'HR'),
-(7, 'Freezer', 'FR'),
-(8, 'Exhibidoras', 'EX'),
-(9, 'Heladeras Comercial', 'HC');
+INSERT INTO `type_equipments` (`type_equip_id`, `name`, `initial`, `requires_unit`) VALUES
+(1, 'Split', 'SP', 1),
+(2, 'Rooftop', 'RT', 1),
+(3, 'Centrales', 'CT', 1),
+(4, 'Cassette', 'CS', 1),
+(5, 'Camara Frigorifica', 'CF', 0),
+(6, 'Heladera Residencial', 'HR', 0),
+(7, 'Freezer', 'FR', 0),
+(8, 'Exhibidoras', 'EX', 0),
+(9, 'Heladeras Comercial', 'HC', 0);
 
 -- --------------------------------------------------------
 
@@ -1185,6 +1246,7 @@ ALTER TABLE `files`
 --
 ALTER TABLE `images`
   ADD PRIMARY KEY (`image_id`),
+  ADD UNIQUE KEY `equipment_id` (`equipment_id`),
   ADD KEY `fk_images_equipment` (`equipment_id`);
 
 --
@@ -1228,7 +1290,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT de la tabla `answers`
 --
 ALTER TABLE `answers`
-  MODIFY `answers_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+  MODIFY `answers_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=300;
 
 --
 -- AUTO_INCREMENT de la tabla `assignment`
@@ -1258,13 +1320,13 @@ ALTER TABLE `data_equipments`
 -- AUTO_INCREMENT de la tabla `equipments`
 --
 ALTER TABLE `equipments`
-  MODIFY `equipment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `equipment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT de la tabla `equipments_history`
 --
 ALTER TABLE `equipments_history`
-  MODIFY `history_equip_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `history_equip_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT de la tabla `fields_category`
@@ -1294,7 +1356,7 @@ ALTER TABLE `files`
 -- AUTO_INCREMENT de la tabla `images`
 --
 ALTER TABLE `images`
-  MODIFY `image_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `image_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT de la tabla `permissions`
