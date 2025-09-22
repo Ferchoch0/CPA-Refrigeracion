@@ -99,6 +99,56 @@ class EquipmentsModel
         }
     }
 
+    function getEquipmentsByClientCompleted($clientId)
+    {
+        $sql = "
+            SELECT 
+                e.equipment_id,
+                e.client_id,
+                c.company_name AS client_name,
+                e.type_equip_id,
+                e.status,
+                e.code,
+                te.name AS type_name,
+                u.name AS tecnico,
+                eh.date AS ultima_intervencion,
+                eh.action AS tipo_intervencion
+            FROM equipments e
+            INNER JOIN type_equipments te 
+                ON e.type_equip_id = te.type_equip_id
+            INNER JOIN clients c
+                ON e.client_id = c.client_id
+            LEFT JOIN (
+                SELECT equipment_id, MAX(date) AS ultima_fecha
+                FROM equipments_history
+                GROUP BY equipment_id
+            ) ult
+                ON e.equipment_id = ult.equipment_id
+            LEFT JOIN equipments_history eh
+                ON e.equipment_id = eh.equipment_id 
+                AND eh.date = ult.ultima_fecha
+            LEFT JOIN users u
+                ON eh.user_id = u.user_id
+            WHERE e.client_id = ?
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $clientId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $data = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+
+            if (empty($data)) {
+                return ['error' => 'ERR_CLIENT_NOT_FOUND'];
+            }
+            return $data;
+        } else {
+            return ['error' => 'ERR_DB_CONN'];
+        }
+    }
+
     public function getQuestionsCategory()
     {
         $sql = "SELECT * FROM fields_category";
@@ -118,7 +168,7 @@ class EquipmentsModel
         }
     }
 
-    public function getQuestionsByCategory($categoryId, $typeEquipId)
+    public function getQuestionsByType($categoryId, $typeEquipId)
     {
         $sql = "
         SELECT 
@@ -180,6 +230,67 @@ class EquipmentsModel
         }
 
         return array_values($data);
+    }
+
+    public function getQuestionsByCategory($categoryId)
+    {
+        $sql = "
+    SELECT 
+        fe.field_equip_id,
+        fe.field_category_id,
+        fe.name,
+        fe.description,
+        fe.fields_type,
+        fo.option_id,
+        fo.value AS option_value,
+        fo.label AS option_label
+    FROM fields_equipment fe
+    LEFT JOIN field_options fo
+        ON fe.field_equip_id = fo.field_equip_id
+    WHERE fe.field_category_id = ?
+    ORDER BY fe.field_equip_id, fo.option_id
+        ";
+        $stmt = $this->conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $categoryId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $rows = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+
+            if (empty($rows)) {
+                return ['error' => 'ERR_CATEGORY_NOT_FOUND'];
+            }
+
+            $data = [];
+            foreach ($rows as $row) {
+                $fieldId = $row['field_equip_id'];
+                if (!isset($data[$fieldId])) {
+                    $data[$fieldId] = [
+                        'field_equip_id' => $row['field_equip_id'],
+                        'field_category_id' => $row['field_category_id'],
+                        'name' => $row['name'],
+                        'description' => $row['description'],
+                        'fields_type' => $row['fields_type'],
+                        'options' => []
+                    ];
+                }
+
+                if ($row['option_id']) {
+                    $data[$fieldId]['options'][] = [
+                        'option_id' => $row['option_id'],
+                        'value' => $row['option_value'],
+                        'label' => $row['option_label']
+                    ];
+                }
+            }
+
+            return array_values($data);
+
+        } else {
+            return ['error' => 'ERR_DB_CONN'];
+        }
+
     }
 
     public function saveAnswers($equipmentId, $answers, $userId)

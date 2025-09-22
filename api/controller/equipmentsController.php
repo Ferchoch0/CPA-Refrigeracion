@@ -182,6 +182,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
+        case 'getEquipmentsByClientCompleted':
+            if (isset($_GET['client_id'])) {
+                $clientId = intval($_GET['client_id']);
+                $result = $equipmentsModel->getEquipmentsByClientCompleted($clientId);
+                echo json_encode($result);
+            } else {
+                echo json_encode(['error' => 'ERR_MISSING_CLIENT_ID']);
+            }
+            break;
+
         case 'getTasks':
             try {
                 $result = $equipmentsModel->getQuestionsCategory();
@@ -190,16 +200,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode(['error' => $e->getMessage()]);
             }
             break;
-        case 'getQuestions':
+
+        case 'getQuestionsByType':
             try {
                 if (isset($_GET['category_id'], $_GET['type_equip_id'])) {
                     $categoryId = intval($_GET['category_id']);
                     $typeEquipId = intval($_GET['type_equip_id']);
 
-                    $result = $equipmentsModel->getQuestionsByCategory($categoryId, $typeEquipId);
+                    $result = $equipmentsModel->getQuestionsByType($categoryId, $typeEquipId);
                     echo json_encode($result);
                 } else {
                     echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+                }
+            } catch (Exception $e) {
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            break;
+
+        case 'getQuestions':
+            try {
+                if (isset($_GET['category_id'])) {
+                    $categoryId = intval($_GET['category_id']);
+                    $result = $equipmentsModel->getQuestionsByCategory($categoryId);
+                    echo json_encode($result);
                 }
             } catch (Exception $e) {
                 echo json_encode(['error' => $e->getMessage()]);

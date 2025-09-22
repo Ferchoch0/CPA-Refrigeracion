@@ -30,7 +30,7 @@ function AnswersForm() {
         const fetchFields = async () => {
             try {
                 const response = await fetch(
-                    `${API_URL}/equipmentsController.php?action=getQuestions&category_id=${categoryId}&type_equip_id=${typeEquipId}`
+                    `${API_URL}/equipmentsController.php?action=getQuestionsByType&category_id=${categoryId}&type_equip_id=${typeEquipId}`
                 );
                 const data = await response.json();
                 console.log(typeEquipId);
