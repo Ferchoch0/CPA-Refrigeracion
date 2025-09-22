@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/cors.php';
+error_log("POST: " . print_r($_POST, true));
+error_log("FILES: " . print_r($_FILES, true));
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -41,9 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (isset($data['client_id'], $data['type_equip_id'])) {
                 $clientId = intval($data['client_id']);
                 $typeEquipId = intval($data['type_equip_id']);
-                $placement = $data['unidad'] ?? null;
 
-                $result = $equipmentsModel->addEquipments($clientId, $typeEquipId, $placement);
+                $result = $equipmentsModel->addEquipments($clientId, $typeEquipId);
 
                 echo json_encode($result);
             } else {
@@ -67,11 +68,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'saveAnswers':
-            if (isset($_POST['equipment_id'], $_POST['user_id'])) {
+            header('Content-Type: application/json; charset=utf-8');
+
+            // Verifico si vino como formulario con imagen
+            if (!empty($_POST) || !empty($_FILES)) {
+                if (!isset($_POST['equipment_id'], $_POST['user_id'])) {
+                    echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+                    exit;
+                }
+
                 $equipmentId = intval($_POST['equipment_id']);
                 $userId = intval($_POST['user_id']);
                 $answers = [];
 
+                // Procesar respuestas normales
                 foreach ($_POST as $key => $val) {
                     if (strpos($key, "answer_") === 0) {
                         $fieldId = str_replace("answer_", "", $key);
@@ -79,20 +89,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
+                // Procesar archivos como respuestas también
                 if (!empty($_FILES)) {
                     foreach ($_FILES as $key => $file) {
                         if ($file['error'] === UPLOAD_ERR_OK) {
-                            $uploadDir = __DIR__ . "/../../uploads/";
+                            $uploadDir = __DIR__ . "/upload/equip/";
                             if (!file_exists($uploadDir)) {
                                 mkdir($uploadDir, 0777, true);
                             }
 
-                            $fileName = uniqid() . "_" . basename($file["name"]);
-                            $filePath = $uploadDir . $fileName;
+                            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                            $filename = "equip{$equipmentId}." . strtolower($ext);
+                            $targetPath = $uploadDir . $filename;
 
-                            if (move_uploaded_file($file["tmp_name"], $filePath)) {
-                                $fileUrl = "uploads/" . $fileName;
-                                $equipmentsModel->saveImage($equipmentId, $fileUrl);
+                            if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                                $fieldId = str_replace("file_", "", $key); // ej: file_12 → fieldId=12
+                                $answers[$fieldId] = $filename;
+                            } else {
+                                echo json_encode(['error' => 'ERR_UPLOAD_FAILED']);
+                                exit;
                             }
                         }
                     }
@@ -100,11 +115,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $result = $equipmentsModel->saveAnswers($equipmentId, $answers, $userId);
                 echo json_encode($result);
-            } else {
-                echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+                exit;
+            }
+
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (!$data) {
+                echo json_encode(['error' => 'ERR_NO_DATA']);
+                exit;
             }
             break;
-
 
         case 'updateQuestion':
             if (isset($data['id'], $data['name'], $data['type'], $data['description'], $data['user_id'])) {
@@ -192,10 +211,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
-        case 'getTasks':
+        case 'getQuestionsCategory':
             try {
-                $result = $equipmentsModel->getQuestionsCategory();
-                echo json_encode($result);
+                if (isset($_GET['equipment_id'])) {
+                    $equipmentId = intval($_GET['equipment_id']);
+                    $result = $equipmentsModel->getQuestionsCategory($equipmentId);
+                    echo json_encode($result);
+                } else {
+                    echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+                }
             } catch (Exception $e) {
                 echo json_encode(['error' => $e->getMessage()]);
             }
@@ -207,7 +231,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $categoryId = intval($_GET['category_id']);
                     $typeEquipId = intval($_GET['type_equip_id']);
 
-                    $result = $equipmentsModel->getQuestionsByType($categoryId, $typeEquipId);
+                    $equipmentId = isset($_GET['equipment_id']) ? intval($_GET['equipment_id']) : null;
+
+                    $result = $equipmentsModel->getQuestionsByType($categoryId, $typeEquipId, $equipmentId);
                     echo json_encode($result);
                 } else {
                     echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);

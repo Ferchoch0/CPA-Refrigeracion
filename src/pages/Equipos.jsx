@@ -28,6 +28,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
   const [estadoFiltro, setEstadoFiltro] = useState("Todos");
   const [modalVisible, setModalVisible] = useState(false);
   // Estado para cambiar estado de equipo
+  const [modalUnidadVisible, setModalUnidadVisible] = useState(false);
   const [modalEstadoVisible, setModalEstadoVisible] = useState(false);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const [nuevoEstado, setNuevoEstado] = useState("");
@@ -94,7 +95,11 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
       );
       const data = await response.json();
 
-      if (data.error) {
+      if (!data.error) {
+        const agrupados = agruparEquipos(data);
+        setEquipos(agrupados);
+        setFilteredEquipos(agrupados);
+      } else if (data.error) {
         console.error("Error:", data.error);
         setEquipos([]);
         setFilteredEquipos([]);
@@ -107,6 +112,20 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const agruparEquipos = (equipos) => {
+    const mapa = {};
+
+    equipos.forEach(eq => {
+      const key = eq.code; // mismo código = mismo equipo físico
+      if (!mapa[key]) {
+        mapa[key] = { ...eq, unidades: [] };
+      }
+      mapa[key].unidades.push(eq);
+    });
+
+    return Object.values(mapa);
   };
 
   useEffect(() => {
@@ -164,14 +183,22 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
   const renderEquipo = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() =>
-        navigation.navigate("FormGeneral", {
-          equipmentId: item.equipment_id,
-          typeEquipId: item.type_equip_id,
-          code: item.code,
-          name: item.name,
-        })
-      }
+      onPress={() => {
+        if (item.unidades.length > 1) {
+          // abre modal de selección
+          setEquipoSeleccionado(item);
+          setModalUnidadVisible(true);
+        } else {
+          // entra directo
+          const unica = item.unidades[0];
+          navigation.navigate("FormGeneral", {
+            equipmentId: unica.equipment_id,
+            typeEquipId: unica.type_equip_id,
+            code: unica.code,
+            name: unica.name,
+          });
+        }
+      }}
       onLongPress={() => {
         setEquipoSeleccionado(item);
         setNuevoEstado(item.status);
@@ -195,19 +222,9 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
   );
 
   // Recibe los datos seleccionados del modal y navega al formulario
-  const handleContinue = async (tipoEquipo, unidad, code, equipmentId) => {
+  const handleContinue = async () => {
     setModalVisible(false);
-
-    // pasamos toda la info al FormGeneral
-    navigation.navigate("FormGeneral", {
-      tipoEquipo,
-      unidad,
-      code,
-      equipmentId,
-    });
-
-    // recargar lista
-    await fetchEquipos();
+    await fetchEquipos(); // solo refresca lista
   };
 
   return (
@@ -387,6 +404,64 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
             onContinue={handleContinue}
             onCancel={() => setModalVisible(false)}
           />
+        </Modal>
+
+        {/* Modal para seleccionar entre exterior e interior */}
+        <Modal
+          visible={modalUnidadVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setModalUnidadVisible(false)}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.3)",
+            justifyContent: "center",
+            alignItems: "center"
+          }}>
+            <View style={{
+              backgroundColor: "#fff",
+              borderRadius: 20,
+              padding: 20,
+              width: 300,
+              alignItems: "center"
+            }}>
+              <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 15 }}>
+                Seleccionar unidad
+              </Text>
+              {equipoSeleccionado?.unidades.map((unidad) => (
+                <TouchableOpacity
+                  key={unidad.equipment_id}
+                  style={{
+                    padding: 12,
+                    marginVertical: 6,
+                    width: "100%",
+                    backgroundColor: "#f1f1f1",
+                    borderRadius: 10,
+                    alignItems: "center"
+                  }}
+                  onPress={() => {
+                    setModalUnidadVisible(false);
+                    navigation.navigate("FormGeneral", {
+                      equipmentId: unidad.equipment_id,
+                      typeEquipId: unidad.type_equip_id,
+                      code: unidad.code,
+                      name: unidad.name,
+                      placement: unidad.placement ?? null,
+                    });
+                  }}
+                >
+                  <Text style={{ fontSize: 16 }}>
+                    {unidad.placement
+                      ? unidad.placement.toLowerCase() === "interior"
+                        ? "Unidad Interior"
+                        : "Unidad Exterior"
+                      : "Sin definir"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         </Modal>
 
         {/* Modal para cambiar estado de equipo */}

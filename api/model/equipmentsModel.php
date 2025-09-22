@@ -8,10 +8,10 @@ class EquipmentsModel
         $this->conn = $conn;
     }
 
-    public function addEquipments($clientId, $typeEquipId, $placement)
+    public function addEquipments($clientId, $typeEquipId)
     {
         // Obtener la inicial del tipo de equipo
-        $sqlInitial = "SELECT initial FROM type_equipments WHERE type_equip_id = ?";
+        $sqlInitial = "SELECT initial, requires_unit FROM type_equipments WHERE type_equip_id = ?";
         $stmtInitial = $this->conn->prepare($sqlInitial);
         $stmtInitial->bind_param("i", $typeEquipId);
         $stmtInitial->execute();
@@ -24,6 +24,7 @@ class EquipmentsModel
         }
 
         $initial = $typeData['initial'];
+        $requiresUnit = intval($typeData['requires_unit']); // 1 = sí, 0 = no
 
         // Obtener el último número del code para este tipo
         $sqlLastCode = "SELECT code FROM equipments WHERE type_equip_id = ? ORDER BY equipment_id DESC LIMIT 1";
@@ -34,7 +35,7 @@ class EquipmentsModel
         $lastEquipment = $result->fetch_assoc();
         $stmtLastCode->close();
 
-        $nextNumber = 1; // por defecto si no hay equipos
+        $nextNumber = 1;
         if ($lastEquipment) {
             preg_match('/\d+$/', $lastEquipment['code'], $matches);
             if (!empty($matches)) {
@@ -42,29 +43,56 @@ class EquipmentsModel
             }
         }
 
-        // Generar el nuevo código (ej: "A001")
+        // Generar nuevo código
         $newCode = $initial . str_pad($nextNumber, 3, "0", STR_PAD_LEFT);
 
-        // Insertar el nuevo equipo
-        $sqlInsert = "INSERT INTO equipments (client_id, type_equip_id, placement, code) VALUES (?, ?, ?, ?)";
-        $stmtInsert = $this->conn->prepare($sqlInsert);
-        $stmtInsert->bind_param("iiss", $clientId, $typeEquipId, $placement, $newCode);
+        $createdEquipments = [];
 
-        if ($stmtInsert->execute()) {
-            $newId = $stmtInsert->insert_id;
-            $stmtInsert->close();
-            return [
-                'success' => true,
-                'equipment_id' => $newId,
-                'code' => $newCode
-            ];
+        if ($requiresUnit) {
+            $placements = ['interior', 'exterior'];
+
+            foreach ($placements as $placement) {
+                $sqlInsert = "INSERT INTO equipments (client_id, type_equip_id, placement, code) VALUES (?, ?, ?, ?)";
+                $stmtInsert = $this->conn->prepare($sqlInsert);
+                $stmtInsert->bind_param("iiss", $clientId, $typeEquipId, $placement, $newCode);
+
+                if ($stmtInsert->execute()) {
+                    $createdEquipments[] = [
+                        'equipment_id' => $stmtInsert->insert_id,
+                        'placement' => $placement
+                    ];
+                } else {
+                    $error = $stmtInsert->error;
+                    $stmtInsert->close();
+                    return ['error' => 'ERR_DB_INSERT', 'details' => $error];
+                }
+                $stmtInsert->close();
+            }
         } else {
-            $error = $stmtInsert->error;
-            $stmtInsert->close();
-            return ['error' => 'ERR_DB_INSERT', 'details' => $error];
-        }
-    }
+            // Un solo equipo
+            $sqlInsert = "INSERT INTO equipments (client_id, type_equip_id, placement, code) VALUES (?, ?, NULL, ?)";
+            $stmtInsert = $this->conn->prepare($sqlInsert);
+            $stmtInsert->bind_param("iis", $clientId, $typeEquipId, $newCode);
 
+            if ($stmtInsert->execute()) {
+                $createdEquipments[] = [
+                    'equipment_id' => $stmtInsert->insert_id,
+                    'placement' => null
+                ];
+            } else {
+                $error = $stmtInsert->error;
+                $stmtInsert->close();
+                return ['error' => 'ERR_DB_INSERT', 'details' => $error];
+            }
+            $stmtInsert->close();
+        }
+
+        return [
+            'success' => true,
+            'code' => $newCode,
+            'equipments' => $createdEquipments
+        ];
+    }
 
     public function getEquipmentsByClientId($clientId)
     {
@@ -74,6 +102,7 @@ class EquipmentsModel
                 e.client_id,
                 e.type_equip_id,
                 e.status,
+                e.placement,
                 te.name,
                 e.code
             FROM equipments e
@@ -149,26 +178,45 @@ class EquipmentsModel
         }
     }
 
-    public function getQuestionsCategory()
+    public function getQuestionsCategory($equipmentId)
     {
-        $sql = "SELECT * FROM fields_category";
-        $stmt = $this->conn->prepare($sql);
-        if ($stmt) {
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $data = $result->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
+        $sql = "
+        SELECT 
+            c.field_category_id,
+            c.name,
+            c.description,
+            c.ord,
+            COUNT(DISTINCT q.field_equip_id) AS questions_total,
+            COUNT(DISTINCT a.field_equip_id) AS questions_answered
+        FROM fields_category c
+        INNER JOIN equipments e
+            ON e.equipment_id = ?
+        LEFT JOIN fields_equipment q
+            ON q.field_category_id = c.field_category_id
+        INNER JOIN data_equipments de
+            ON de.type_fields = q.field_equip_id
+           AND de.type_equip_id = e.type_equip_id
+        LEFT JOIN answers a
+            ON a.field_equip_id = q.field_equip_id
+           AND a.equipments_id = e.equipment_id
+        GROUP BY c.field_category_id
+        ORDER BY c.ord ASC
+    ";
 
-            if (empty($data)) {
-                return ['error' => 'ERR_CATEGORY_NOT_FOUND'];
-            }
-            return $data;
-        } else {
-            return ['error' => 'ERR_DB_CONN'];
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("i", $equipmentId);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        if (empty($result)) {
+            return ['error' => 'ERR_CATEGORY_NOT_FOUND'];
         }
+        return $result;
     }
 
-    public function getQuestionsByType($categoryId, $typeEquipId)
+
+    public function getQuestionsByType($categoryId, $typeEquipId, $equipmentId = null)
     {
         $sql = "
         SELECT 
@@ -205,6 +253,7 @@ class EquipmentsModel
             return ['error' => 'ERR_NO_QUESTIONS_FOUND'];
         }
 
+        // Armar preguntas
         $data = [];
         foreach ($rows as $row) {
             $fieldId = $row['field_equip_id'];
@@ -229,7 +278,24 @@ class EquipmentsModel
             }
         }
 
-        return array_values($data);
+        // Si se pasa equipmentId, traer respuestas
+        $answers = [];
+        if ($equipmentId) {
+            $sqlAns = "SELECT field_equip_id, value FROM answers WHERE equipments_id = ?";
+            $stmtAns = $this->conn->prepare($sqlAns);
+            $stmtAns->bind_param("i", $equipmentId);
+            $stmtAns->execute();
+            $resAns = $stmtAns->get_result();
+            while ($row = $resAns->fetch_assoc()) {
+                $answers[$row['field_equip_id']] = $row['value'];
+            }
+            $stmtAns->close();
+        }
+
+        return [
+            'questions' => array_values($data),
+            'answers' => $answers
+        ];
     }
 
     public function getQuestionsByCategory($categoryId)
@@ -335,23 +401,40 @@ class EquipmentsModel
     }
 
 
-    public function saveImage($equipmentId, $fileUrl)
-    {
-        $sql = "INSERT INTO images (equipment_id, name) VALUES (?, ?)";
-        $stmt = $this->conn->prepare($sql);
-        if ($stmt) {
-            $stmt->bind_param("is", $equipmentId, $fileUrl);
-            if ($stmt->execute()) {
-                $stmt->close();
-                return ['success' => true];
-            } else {
-                $stmt->close();
-                return ['success' => false, 'error' => 'ERR_DB_INSERT'];
-            }
-        } else {
-            return ['success' => false, 'error' => 'ERR_DB_CONN'];
-        }
-    }
+    // public function saveImage($equipmentId, $filename, $userId)
+    // {
+    //     // Insertar o actualizar registro en la tabla images
+    //     $sql = "INSERT INTO images (equipment_id, name) 
+    //         VALUES (?, ?)
+    //         ON DUPLICATE KEY UPDATE name = VALUES(name)";
+    //     $stmt = $this->conn->prepare($sql);
+
+    //     if (!$stmt) {
+    //         return ['success' => false, 'error' => 'ERR_DB_PREPARE'];
+    //     }
+
+    //     $stmt->bind_param("is", $equipmentId, $filename);
+    //     $ok = $stmt->execute();
+    //     $stmt->close();
+
+    //     if (!$ok) {
+    //         return ['success' => false, 'error' => 'ERR_DB_EXECUTE'];
+    //     }
+
+    //     // Registrar historial
+    //     $action = "Se actualizó la foto del equipo";
+    //     $historySql = "INSERT INTO equipments_history (equipment_id, user_id, action) 
+    //                VALUES (?, ?, ?)";
+    //     $stmtHist = $this->conn->prepare($historySql);
+    //     if ($stmtHist) {
+    //         $stmtHist->bind_param("iis", $equipmentId, $userId, $action);
+    //         $stmtHist->execute();
+    //         $stmtHist->close();
+    //     }
+
+    //     return ['success' => true, 'file' => $filename];
+    // }
+
 
     public function getQuestionsById($id)
     {
