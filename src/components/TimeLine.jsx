@@ -6,10 +6,19 @@ import Constants from 'expo-constants';
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
-const TimelineItem = ({ item, isSelected, onPress, equipmentId }) => {
+const TimelineItem = ({ item, isSelected, onPress, equipmentId, typeEquipId }) => {
   const navigation = useNavigation();
   return (
-    <TouchableOpacity onPress={() => navigation.navigate("Preguntas", { categoryId: item.field_category_id, equipmentId: equipmentId, })} activeOpacity={0.8}>
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate("Preguntas", {
+          categoryId: item.field_category_id,
+          equipmentId,
+          typeEquipId,
+        })
+      }
+      activeOpacity={0.8}
+    >
       {/* onPress(item.field_category_id) */}
       <View style={styles.timelineRow}>
         {/* Línea y punto */}
@@ -56,7 +65,7 @@ const TimelineItem = ({ item, isSelected, onPress, equipmentId }) => {
   );
 };
 
-export function TimelineScreen({ equipmentId }) {
+export function TimelineScreen({ equipmentId, typeEquipId }) {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +115,7 @@ export function TimelineScreen({ equipmentId }) {
             isSelected={selectedTaskId === item.field_category_id}
             onPress={setSelectedTaskId}
             equipmentId={equipmentId}
+            typeEquipId={typeEquipId}
           />
         )}
       />

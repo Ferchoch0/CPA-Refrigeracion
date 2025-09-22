@@ -118,65 +118,68 @@ class EquipmentsModel
         }
     }
 
-    public function getQuestionsByCategory($categoryId)
+    public function getQuestionsByCategory($categoryId, $typeEquipId)
     {
         $sql = "
-    SELECT 
-        fe.field_equip_id,
-        fe.field_category_id,
-        fe.name,
-        fe.description,
-        fe.fields_type,
-        fo.option_id,
-        fo.value AS option_value,
-        fo.label AS option_label
-    FROM fields_equipment fe
-    LEFT JOIN field_options fo
-        ON fe.field_equip_id = fo.field_equip_id
-    WHERE fe.field_category_id = ?
-    ORDER BY fe.field_equip_id, fo.option_id
-        ";
+        SELECT 
+            fe.field_equip_id,
+            fe.field_category_id,
+            fe.name,
+            fe.description,
+            fe.fields_type,
+            fo.option_id,
+            fo.value AS option_value,
+            fo.label AS option_label,
+            de.mandatory
+        FROM fields_equipment fe
+        INNER JOIN data_equipments de
+            ON de.type_fields = fe.field_equip_id
+           AND de.type_equip_id = ?
+        LEFT JOIN field_options fo
+            ON fe.field_equip_id = fo.field_equip_id
+        WHERE fe.field_category_id = ?
+        ORDER BY fe.field_equip_id, fo.option_id
+    ";
+
         $stmt = $this->conn->prepare($sql);
-        if ($stmt) {
-            $stmt->bind_param("i", $categoryId);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $rows = $result->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
-
-            if (empty($rows)) {
-                return ['error' => 'ERR_CATEGORY_NOT_FOUND'];
-            }
-
-            $data = [];
-            foreach ($rows as $row) {
-                $fieldId = $row['field_equip_id'];
-                if (!isset($data[$fieldId])) {
-                    $data[$fieldId] = [
-                        'field_equip_id' => $row['field_equip_id'],
-                        'field_category_id' => $row['field_category_id'],
-                        'name' => $row['name'],
-                        'description' => $row['description'],
-                        'fields_type' => $row['fields_type'],
-                        'options' => []
-                    ];
-                }
-
-                if ($row['option_id']) {
-                    $data[$fieldId]['options'][] = [
-                        'option_id' => $row['option_id'],
-                        'value' => $row['option_value'],
-                        'label' => $row['option_label']
-                    ];
-                }
-            }
-
-            return array_values($data);
-
-        } else {
+        if (!$stmt)
             return ['error' => 'ERR_DB_CONN'];
+
+        $stmt->bind_param("ii", $typeEquipId, $categoryId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $rows = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        if (empty($rows)) {
+            return ['error' => 'ERR_NO_QUESTIONS_FOUND'];
         }
 
+        $data = [];
+        foreach ($rows as $row) {
+            $fieldId = $row['field_equip_id'];
+            if (!isset($data[$fieldId])) {
+                $data[$fieldId] = [
+                    'field_equip_id' => $row['field_equip_id'],
+                    'field_category_id' => $row['field_category_id'],
+                    'name' => $row['name'],
+                    'description' => $row['description'],
+                    'fields_type' => $row['fields_type'],
+                    'mandatory' => (int) $row['mandatory'],
+                    'options' => []
+                ];
+            }
+
+            if (!empty($row['option_id'])) {
+                $data[$fieldId]['options'][] = [
+                    'option_id' => $row['option_id'],
+                    'value' => $row['option_value'],
+                    'label' => $row['option_label']
+                ];
+            }
+        }
+
+        return array_values($data);
     }
 
     public function saveAnswers($equipmentId, $answers, $userId)
@@ -269,9 +272,24 @@ class EquipmentsModel
                 $options = $resOpts->fetch_all(MYSQLI_ASSOC);
                 $stmtOpts->close();
 
-                // Agregar las opciones al resultado
                 $question['options'] = $options;
+            } else {
+                $question['options'] = [];
             }
+
+            // Traer equipos asociados
+            $sqlEq = "SELECT type_equip_id FROM data_equipments WHERE type_fields = ?";
+            $stmtEq = $this->conn->prepare($sqlEq);
+            $stmtEq->bind_param("i", $id);
+            $stmtEq->execute();
+            $resEq = $stmtEq->get_result();
+            $equipTypes = [];
+            while ($row = $resEq->fetch_assoc()) {
+                $equipTypes[] = (int) $row['type_equip_id'];
+            }
+            $stmtEq->close();
+
+            $question['equipTypes'] = $equipTypes;
 
             return $question;
         } catch (Exception $e) {
@@ -279,14 +297,14 @@ class EquipmentsModel
         }
     }
 
-    public function updateQuestions($fieldId, $name, $type, $description, $options = "", $user_id = null)
+    public function updateQuestions($fieldId, $name, $type, $description, $options = "", $user_id = null, $equipTypes = [], $mandatory = 0)
     {
         try {
             if (empty($fieldId) || empty($name) || empty($type) || !$user_id) {
                 return ['error' => 'ERR_MISSING_FIELDS'];
             }
 
-            //Actualizar fields_equipment
+            // 1. Actualizar fields_equipment
             $sql = "UPDATE fields_equipment
                 SET name = ?, fields_type = ?, description = ? 
                 WHERE field_equip_id = ?";
@@ -298,15 +316,13 @@ class EquipmentsModel
             }
             $stmt->close();
 
-            //Si es tipo select, actualizar opciones
+            // 2. Opciones si es SELECT
             if ($type === "select") {
-                // Borrar opciones antiguas
                 $del = $this->conn->prepare("DELETE FROM field_options WHERE field_equip_id = ?");
                 $del->bind_param("i", $fieldId);
                 $del->execute();
                 $del->close();
 
-                // Insertar nuevas opciones
                 $optsArray = array_map('trim', explode(",", $options));
                 $ins = $this->conn->prepare("INSERT INTO field_options (field_equip_id, value, label) VALUES (?, ?, ?)");
                 foreach ($optsArray as $opt) {
@@ -318,10 +334,26 @@ class EquipmentsModel
                 $ins->close();
             }
 
-            // Insertar en auditoría
+            // 3. Actualizar data_equipments (asociación con tipos de equipos)
+            // Borrar relaciones anteriores
+            $del2 = $this->conn->prepare("DELETE FROM data_equipments WHERE type_fields = ?");
+            $del2->bind_param("i", $fieldId);
+            $del2->execute();
+            $del2->close();
+
+            // Insertar nuevas relaciones
+            if (!empty($equipTypes)) {
+                $ins2 = $this->conn->prepare("INSERT INTO data_equipments (type_equip_id, type_fields, mandatory) VALUES (?, ?, ?)");
+                foreach ($equipTypes as $etId) {
+                    $ins2->bind_param("iii", $etId, $fieldId, $mandatory);
+                    $ins2->execute();
+                }
+                $ins2->close();
+            }
+
+            // 4. Insertar en auditoría
             $action = "Actualización de pregunta ID: " . $fieldId;
             $statusAction = "success";
-
             $stmt2 = $this->conn->prepare("
             INSERT INTO audit (user_id, action, status_action, date)
             VALUES (?, ?, ?, NOW())
@@ -338,7 +370,6 @@ class EquipmentsModel
         }
     }
 
-
     public function updateStatus($equipment_id, $status)
     {
         $stmt = $this->conn->prepare("UPDATE equipments SET status = ? WHERE equipment_id = ?");
@@ -351,7 +382,7 @@ class EquipmentsModel
         return ['success' => true];
     }
 
-    public function addQuestions($fieldCategoryId, $name, $type, $description, $options = "", $user_id = null)
+    public function addQuestions($fieldCategoryId, $name, $type, $description, $options = "", $user_id = null, $equipTypes = [], $mandatory = 0)
     {
         try {
             // Validación mínima
@@ -359,7 +390,7 @@ class EquipmentsModel
                 return ['error' => 'ERR_MISSING_FIELDS'];
             }
 
-            // Insertar en fields_equipment
+            // 1. Insertar en fields_equipment
             $stmt = $this->conn->prepare("
             INSERT INTO fields_equipment (field_category_id, name, fields_type, description) 
             VALUES (?, ?, ?, ?)
@@ -380,7 +411,7 @@ class EquipmentsModel
             $insertedId = $this->conn->insert_id;
             $stmt->close();
 
-            // Si el tipo es "select", insertar opciones
+            // 2. Si el tipo es "select", insertar opciones
             if ($type === "select" && !empty($options)) {
                 $optsArray = array_map('trim', explode(",", $options));
 
@@ -398,7 +429,22 @@ class EquipmentsModel
                 $ins->close();
             }
 
-            // Insertar en auditoría
+            // 3. Insertar en data_equipments (asociación con equipos + mandatory)
+            if (!empty($equipTypes)) {
+                $ins2 = $this->conn->prepare("
+                INSERT INTO data_equipments (type_equip_id, type_fields, mandatory) 
+                VALUES (?, ?, ?)
+            ");
+
+                foreach ($equipTypes as $etId) {
+                    $ins2->bind_param("iii", $etId, $insertedId, $mandatory);
+                    $ins2->execute();
+                }
+
+                $ins2->close();
+            }
+
+            // 4. Insertar en auditoría
             $action = "Alta de pregunta: " . $name;
             $statusAction = "success";
 
@@ -416,6 +462,23 @@ class EquipmentsModel
         } catch (Exception $e) {
             return ['error' => $e->getMessage()];
         }
+    }
+
+    public function getEquipTypes()
+    {
+        $sql = "SELECT * FROM type_equipments ORDER BY name ASC";
+        $result = $this->conn->query($sql);
+
+        if (!$result) {
+            return ["error" => "Error en la consulta: " . $this->conn->error];
+        }
+
+        $equipTypes = [];
+        while ($row = $result->fetch_assoc()) {
+            $equipTypes[] = $row;
+        }
+
+        return $equipTypes;
     }
 
 

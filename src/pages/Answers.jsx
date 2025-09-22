@@ -24,15 +24,16 @@ function AnswersForm() {
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
     const route = useRoute();
-    const { categoryId, equipmentId } = route.params;
+    const { categoryId, equipmentId, typeEquipId } = route.params;
 
     useEffect(() => {
         const fetchFields = async () => {
             try {
                 const response = await fetch(
-                    `${API_URL}/equipmentsController.php?action=getQuestions&category_id=${categoryId}`
+                    `${API_URL}/equipmentsController.php?action=getQuestions&category_id=${categoryId}&type_equip_id=${typeEquipId}`
                 );
                 const data = await response.json();
+                console.log(typeEquipId);
 
                 if (data.error) {
                     console.error("Error del servidor:", data.error);

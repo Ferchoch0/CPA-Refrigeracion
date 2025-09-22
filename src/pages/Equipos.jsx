@@ -164,7 +164,14 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
   const renderEquipo = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate("FormGeneral", { equipo: item })}
+      onPress={() =>
+        navigation.navigate("FormGeneral", {
+          equipmentId: item.equipment_id,
+          typeEquipId: item.type_equip_id,
+          code: item.code,
+          name: item.name,
+        })
+      }
       onLongPress={() => {
         setEquipoSeleccionado(item);
         setNuevoEstado(item.status);

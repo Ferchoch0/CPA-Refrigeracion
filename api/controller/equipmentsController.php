@@ -115,7 +115,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $options = isset($data['options']) ? $data['options'] : null;
                 $user_id = intval($data['user_id']);
 
-                $result = $equipmentsModel->updateQuestions($fieldId, $name, $type, $description, $options, $user_id);
+                $equipTypes = isset($data['equipTypes']) ? json_decode($data['equipTypes'], true) : [];
+                $mandatory = isset($data['mandatory']) ? intval($data['mandatory']) : 1;
+
+                $result = $equipmentsModel->updateQuestions(
+                    $fieldId,
+                    $name,
+                    $type,
+                    $description,
+                    $options,
+                    $user_id,
+                    $equipTypes,
+                    $mandatory
+                );
 
                 echo json_encode($result);
             } else {
@@ -132,14 +144,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $options = isset($data['options']) ? $data['options'] : null;
                 $user_id = intval($data['user_id']);
 
-                $result = $equipmentsModel->addQuestions($fieldCategoryId, $name, $type, $description, $options, $user_id);
+                $equipTypes = isset($data['equipTypes']) ? json_decode($data['equipTypes'], true) : [];
+                $mandatory = isset($data['mandatory']) ? intval($data['mandatory']) : 1;
+
+                $result = $equipmentsModel->addQuestions(
+                    $fieldCategoryId,
+                    $name,
+                    $type,
+                    $description,
+                    $options,
+                    $user_id,
+                    $equipTypes,
+                    $mandatory
+                );
 
                 echo json_encode($result);
             } else {
                 echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
             }
             break;
-
         default:
             echo json_encode(['error' => 'ERR_UNKNOWN_ACTION']);
             break;
@@ -167,13 +190,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode(['error' => $e->getMessage()]);
             }
             break;
-
         case 'getQuestions':
             try {
-                if (isset($_GET['category_id'])) {
+                if (isset($_GET['category_id'], $_GET['type_equip_id'])) {
                     $categoryId = intval($_GET['category_id']);
-                    $result = $equipmentsModel->getQuestionsByCategory($categoryId);
+                    $typeEquipId = intval($_GET['type_equip_id']);
+
+                    $result = $equipmentsModel->getQuestionsByCategory($categoryId, $typeEquipId);
                     echo json_encode($result);
+                } else {
+                    echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
                 }
             } catch (Exception $e) {
                 echo json_encode(['error' => $e->getMessage()]);
@@ -191,6 +217,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode(['error' => $e->getMessage()]);
             }
             break;
+
+        case "getEquipTypes":
+            $result = $equipmentsModel->getEquipTypes();
+            echo json_encode($result);
+            break;
+
 
         default:
             echo json_encode(['error' => 'ERR_UNKNOWN_ACTION']);
