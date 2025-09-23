@@ -13,6 +13,8 @@ import { useNavigation } from "@react-navigation/native";
 import Constants from 'expo-constants';
 import DateTimePicker from "@react-native-community/datetimepicker";
 
+import Toast from "react-native-toast-message";
+
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 function AnswersForm() {
@@ -125,13 +127,25 @@ function AnswersForm() {
             const data = await response.json();
 
             if (data.success) {
-                alert("Respuestas guardadas con éxito");
+                Toast.show({
+                    type: "success",
+                    text1: "Éxito",
+                    text2: "Respuestas guardadas con éxito",
+                });
             } else {
-                alert("Error al guardar: " + (data.error || "Desconocido"));
+                Toast.show({
+                    type: "error",
+                    text1: "Error",
+                    text2: data.error || "No se pudo guardar",
+                });
             }
         } catch (error) {
             console.error("Error en handleSubmit:", error);
-            alert("Error en la conexión con el servidor");
+            Toast.show({
+                type: "error",
+                text1: "Error de conexión",
+                text2: "No se pudo conectar con el servidor",
+            });
         }
     };
 

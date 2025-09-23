@@ -16,6 +16,8 @@ import { useNavigation } from "@react-navigation/native";
 import TipoEquipoScreen from "../components/TipoEquipo";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Constants from 'expo-constants';
+import Toast from "react-native-toast-message";
+
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
@@ -64,6 +66,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
         equipment_id: equipoSeleccionado.equipment_id,
         status: nuevoEstado,
       });
+
       const response = await fetch(`${API_URL}/equipmentsController.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,15 +76,33 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
           status: nuevoEstado,
         }),
       });
+
       const data = await response.json();
+
       if (data.success) {
         await fetchEquipos();
         setModalEstadoVisible(false);
+
+        Toast.show({
+          type: "success",
+          text1: "Estado actualizado",
+          text2: `El equipo ahora está en estado: ${nuevoEstado}`,
+          position: "bottom",
+        });
       } else {
-        alert(data.error || "No se pudo cambiar el estado");
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: data.error || "No se pudo cambiar el estado",
+          position: "bottom",
+        });
       }
     } catch (err) {
-      alert("Error de red");
+      Toast.show({
+        type: "error",
+        text1: "Error de red",
+        text2: "No se pudo conectar al servidor",
+      });
     }
   };
 

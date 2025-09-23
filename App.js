@@ -1,6 +1,7 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import Toast from "react-native-toast-message";
 
 import SplashScreen from "./src/pages/SplashScreen";
 import LoginScreen from "./src/pages/Login";
@@ -15,40 +16,44 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* Pantalla inicial: SplashScreen */}
-        <Stack.Screen name="Splash" component={SplashScreen} />
+    <>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {/* Pantalla inicial: SplashScreen */}
+          <Stack.Screen name="Splash" component={SplashScreen} />
 
-        {/* Login no tiene navbar */}
-        <Stack.Screen name="Login" component={LoginScreen} />
+          {/* Login no tiene navbar */}
+          <Stack.Screen name="Login" component={LoginScreen} />
 
-        {/* Después del login, mostramos el Navbar */}
-        <Stack.Screen name="Main" component={Navbar} />
+          {/* Después del login, mostramos el Navbar */}
+          <Stack.Screen name="Main" component={Navbar} />
 
-        {/* Agrega Equipos como pantalla normal */}
-        <Stack.Screen name="Equipos" component={EquiposScreen} />
+          {/* Agrega Equipos como pantalla normal */}
+          <Stack.Screen name="Equipos" component={EquiposScreen} />
 
-        {/* Modal para TipoEquipo */}
-        <Stack.Screen
-          name="TipoEquipo"
-          component={TipoEquipoScreen}
-          options={{ presentation: "modal", headerShown: false }}
-        />
+          {/* Modal para TipoEquipo */}
+          <Stack.Screen
+            name="TipoEquipo"
+            component={TipoEquipoScreen}
+            options={{ presentation: "modal", headerShown: false }}
+          />
 
-        {/* Página normal para FormGeneral */}
-        <Stack.Screen name="FormGeneral" component={FormGeneral} />
+          {/* Página normal para FormGeneral */}
+          <Stack.Screen name="FormGeneral" component={FormGeneral} />
 
-        {/* Agrega Equipos como pantalla normal */}
-        <Stack.Screen name="Preguntas" component={AnswersScreen} />
+          {/* Agrega Equipos como pantalla normal */}
+          <Stack.Screen name="Preguntas" component={AnswersScreen} />
 
-        {/* Perfil como modal para animación de abajo hacia arriba */}
-        <Stack.Screen
-          name="Perfil"
-          component={ProfileScreen}
-          options={{ presentation: "modal", headerShown: false }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+          {/* Perfil como modal para animación de abajo hacia arriba */}
+          <Stack.Screen
+            name="Perfil"
+            component={ProfileScreen}
+            options={{ presentation: "modal", headerShown: false }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+
+      <Toast />
+    </>
   );
 }

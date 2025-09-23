@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import Constants from 'expo-constants';
 
 const API_URL = Constants.expoConfig.extra.API_URL;
@@ -61,11 +61,10 @@ const TimelineItem = ({ item, isSelected, onPress, equipmentId, typeEquipId }) =
                 style={[
                   styles.progressBar,
                   {
-                    width: `${
-                      item.questions_total && item.questions_total > 0
+                    width: `${item.questions_total && item.questions_total > 0
                         ? (item.questions_answered / item.questions_total) * 100
                         : 0
-                    }%`,
+                      }%`,
                   },
                 ]}
               />
@@ -98,12 +97,14 @@ export function TimelineScreen({ equipmentId, typeEquipId }) {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isFocused = useIsFocused();
+
 
   useEffect(() => {
     const fetchTasks = async () => {
       try {
         const response = await fetch(
-           `${API_URL}/equipmentsController.php?action=getQuestionsCategory&equipment_id=${equipmentId}`
+          `${API_URL}/equipmentsController.php?action=getQuestionsCategory&equipment_id=${equipmentId}`
         );
         const data = await response.json();
         if (!data.error) {
@@ -120,10 +121,11 @@ export function TimelineScreen({ equipmentId, typeEquipId }) {
       }
     };
 
-    if (equipmentId) {
+    if (equipmentId && isFocused) {
+      setLoading(true);
       fetchTasks();
     }
-  }, [equipmentId]);
+  }, [equipmentId, isFocused]);
 
   if (loading) {
     return (

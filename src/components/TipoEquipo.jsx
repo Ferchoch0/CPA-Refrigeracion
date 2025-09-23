@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import CustomInput from "./CustomInput";
 import Constants from 'expo-constants';
+import Toast from "react-native-toast-message";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
@@ -46,16 +47,32 @@ export default function TipoEquipoScreen({ clientId, onContinue, onCancel }) {
 
       const data = await response.json();
       if (data.success) {
-        console.log("Equipos creados, code:", data.code);
+        Toast.show({
+          type: "success",
+          text1: "Equipo creado",
+          text2: `Código: ${data.code}`,
+          position: "bottom",
+        });
 
-        // ahora 'data.equipments' puede contener interior/exterior
         onContinue(tipo, data.code, data.equipments);
       } else {
-        console.error("Error al agregar equipo:", data.error);
+        Toast.show({
+          type: "error",
+          text1: "Error al agregar equipo",
+          text2: data.error || "Desconocido",
+          position: "bottom",
+        });
       }
 
     } catch (error) {
       console.error("Error en fetch:", error);
+
+      Toast.show({
+        type: "error",
+        text1: "Error de conexión",
+        text2: "No se pudo conectar al servidor",
+        position: "bottom",
+      });
     }
   };
 
