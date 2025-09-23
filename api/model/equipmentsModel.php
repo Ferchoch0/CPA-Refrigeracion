@@ -216,6 +216,42 @@ class EquipmentsModel
     }
 
 
+    public function getAllQuestionsCategories()
+    {
+        $sql = "
+        SELECT 
+            c.field_category_id,
+            c.name,
+            c.description,
+            c.ord,
+            COUNT(DISTINCT q.field_equip_id) AS questions_total
+        FROM fields_category c
+        LEFT JOIN fields_equipment q
+            ON q.field_category_id = c.field_category_id
+        GROUP BY c.field_category_id
+        ORDER BY c.ord ASC
+    ";
+
+        $result = $this->conn->query($sql);
+
+        if (!$result) {
+            return ['error' => 'ERR_DB_CONN'];
+        }
+
+        $rows = $result->fetch_all(MYSQLI_ASSOC);
+
+        if (empty($rows)) {
+            return ['error' => 'ERR_CATEGORY_NOT_FOUND'];
+        }
+
+        foreach ($rows as &$row) {
+            $row['questions_answered'] = 0;
+        }
+
+        return $rows;
+    }
+
+
     public function getQuestionsByType($categoryId, $typeEquipId, $equipmentId = null)
     {
         $sql = "

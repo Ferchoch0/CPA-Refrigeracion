@@ -218,7 +218,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $result = $equipmentsModel->getQuestionsCategory($equipmentId);
                     echo json_encode($result);
                 } else {
-                    echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+                    $result = $equipmentsModel->getAllQuestionsCategories();
+                    echo json_encode($result);
                 }
             } catch (Exception $e) {
                 echo json_encode(['error' => $e->getMessage()]);
