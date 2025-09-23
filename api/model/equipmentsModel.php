@@ -508,6 +508,7 @@ class EquipmentsModel
         fe.fields_type,
         fo.option_id,
         fo.value AS option_value,
+        fo.label AS option_label
     FROM fields_equipment fe
     LEFT JOIN field_options fo
         ON fe.field_equip_id = fo.field_equip_id
