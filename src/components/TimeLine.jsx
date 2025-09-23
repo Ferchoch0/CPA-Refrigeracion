@@ -1,23 +1,40 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import Constants from 'expo-constants';
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
-const TimelineItem = ({ item, isSelected, onPress, equipmentId }) => {
+const TimelineItem = ({ item, isSelected, onPress, equipmentId, typeEquipId }) => {
   const navigation = useNavigation();
+
+  // Calcula si está completo
+  const isComplete =
+    item.questions_total && item.questions_total > 0 &&
+    item.questions_answered === item.questions_total;
+
+  // El item está "activo" si está seleccionado o si está completo
+  const isActive = isSelected || isComplete;
+
   return (
-    <TouchableOpacity onPress={() => navigation.navigate("Preguntas", { categoryId: item.field_category_id, equipmentId: equipmentId, })} activeOpacity={0.8}>
-      {/* onPress(item.field_category_id) */}
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate("Preguntas", {
+          categoryId: item.field_category_id,
+          equipmentId,
+          typeEquipId,
+        })
+      }
+      activeOpacity={0.8}
+    >
       <View style={styles.timelineRow}>
         {/* Línea y punto */}
         <View style={styles.timelineTrack}>
           <View
             style={[
               styles.timelineCircle,
-              isSelected && styles.timelineCircleActive,
+              isActive && styles.timelineCircleActive,
             ]}
           />
           <View style={styles.timelineLine} />
@@ -25,21 +42,41 @@ const TimelineItem = ({ item, isSelected, onPress, equipmentId }) => {
 
         {/* Contenido */}
         <View style={styles.timelineContent}>
-          <View style={isSelected ? styles.taskCardHighlighted : styles.taskCardNormal}>
+          <View style={isActive ? styles.taskCardHighlighted : styles.taskCardNormal}>
             <View style={styles.taskHeaderRow}>
-              <Text style={isSelected ? styles.taskTitleHighlighted : styles.taskTitleNormal}>
+              <Text style={isActive ? styles.taskTitleHighlighted : styles.taskTitleNormal}>
                 {item.name}
               </Text>
-              <Text style={isSelected ? styles.taskTimeHighlighted : styles.taskTimeNormal}>
+              <Text style={isActive ? styles.taskTimeHighlighted : styles.taskTimeNormal}>
                 Paso {item.ord}
               </Text>
             </View>
-            <Text style={isSelected ? styles.taskDescriptionHighlighted : styles.taskDescriptionNormal}>
+            <Text style={isActive ? styles.taskDescriptionHighlighted : styles.taskDescriptionNormal}>
               {item.description}
             </Text>
 
+            {/* Barra de porcentaje */}
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBar,
+                  {
+                    width: `${item.questions_total && item.questions_total > 0
+                        ? (item.questions_answered / item.questions_total) * 100
+                        : 0
+                      }%`,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {item.questions_total && item.questions_total > 0
+                ? `${Math.round((item.questions_answered / item.questions_total) * 100)}% respondido`
+                : "0% respondido"}
+            </Text>
+
             {/* Check al final */}
-            {isSelected && (
+            {isActive && (
               <View style={styles.taskCheckRow}>
                 <Icon
                   name="checkmark-circle"
@@ -56,16 +93,18 @@ const TimelineItem = ({ item, isSelected, onPress, equipmentId }) => {
   );
 };
 
-export function TimelineScreen({ equipmentId }) {
+export function TimelineScreen({ equipmentId, typeEquipId }) {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isFocused = useIsFocused();
+
 
   useEffect(() => {
     const fetchTasks = async () => {
       try {
         const response = await fetch(
-          `${API_URL}/equipmentsController.php?action=getTasks&equipment_id=${equipmentId}`
+          `${API_URL}/equipmentsController.php?action=getQuestionsCategory&equipment_id=${equipmentId}`
         );
         const data = await response.json();
         if (!data.error) {
@@ -82,10 +121,11 @@ export function TimelineScreen({ equipmentId }) {
       }
     };
 
-    if (equipmentId) {
+    if (equipmentId && isFocused) {
+      setLoading(true);
       fetchTasks();
     }
-  }, [equipmentId]);
+  }, [equipmentId, isFocused]);
 
   if (loading) {
     return (
@@ -106,6 +146,7 @@ export function TimelineScreen({ equipmentId }) {
             isSelected={selectedTaskId === item.field_category_id}
             onPress={setSelectedTaskId}
             equipmentId={equipmentId}
+            typeEquipId={typeEquipId}
           />
         )}
       />
@@ -191,5 +232,25 @@ const styles = StyleSheet.create({
   taskDescriptionNormal: {
     fontSize: 13,
     color: "#aaa",
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: "#eee",
+    borderRadius: 4,
+    marginTop: 10,
+    marginBottom: 2,
+    overflow: "hidden",
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: "#4FC3F7",
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    color: "#aaa",
+    marginBottom: 4,
+    marginTop: 2,
+    alignSelf: "flex-end",
   },
 });

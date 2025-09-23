@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import CustomInput from "./CustomInput";
 import Constants from 'expo-constants';
+import Toast from "react-native-toast-message";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
@@ -14,9 +15,8 @@ const requiereUnidad = ["Split", "Rooftop", "Centrales", "Cassette"];
 
 export default function TipoEquipoScreen({ clientId, onContinue, onCancel }) {
   const [tipo, setTipo] = useState("");
-  const [unidad, setUnidad] = useState("");
 
-  const handleContinue = async (tipo, unidad) => {
+  const handleContinue = async (tipo) => {
     try {
       const typeEquipMap = {
         "Split": 1,
@@ -41,22 +41,38 @@ export default function TipoEquipoScreen({ clientId, onContinue, onCancel }) {
             action: "addEquipment",
             client_id: clientId,
             type_equip_id: typeEquipId,
-            unidad: unidad
           }),
         }
       );
 
       const data = await response.json();
       if (data.success) {
-        console.log("Equipo creado con id:", data.equipment_id, "y code:", data.code);
+        Toast.show({
+          type: "success",
+          text1: "Equipo creado",
+          text2: `Código: ${data.code}`,
+          position: "bottom",
+        });
 
-        onContinue(tipo, unidad, data.code, data.equipment_id);
+        onContinue(tipo, data.code, data.equipments);
       } else {
-        console.error("Error al agregar equipo:", data.error);
+        Toast.show({
+          type: "error",
+          text1: "Error al agregar equipo",
+          text2: data.error || "Desconocido",
+          position: "bottom",
+        });
       }
 
     } catch (error) {
       console.error("Error en fetch:", error);
+
+      Toast.show({
+        type: "error",
+        text1: "Error de conexión",
+        text2: "No se pudo conectar al servidor",
+        position: "bottom",
+      });
     }
   };
 
@@ -72,26 +88,10 @@ export default function TipoEquipoScreen({ clientId, onContinue, onCancel }) {
           placeholder="Seleccionar..."
         />
 
-        {requiereUnidad.includes(tipo) && (
-          <>
-            <Text style={styles.label}>Unidad:</Text>
-            <CustomInput
-              type="picker"
-              value={unidad}
-              onChangeText={setUnidad}
-              items={[
-                { label: "Unidad exterior", value: "exterior" },
-                { label: "Unidad interior", value: "interior" }
-              ]}
-              placeholder="Seleccionar..."
-            />
-          </>
-        )}
-
         <TouchableOpacity
           style={styles.button}
-          disabled={!tipo || (requiereUnidad.includes(tipo) && !unidad)}
-          onPress={() => handleContinue(tipo, unidad)}
+          disabled={!tipo}
+          onPress={() => handleContinue(tipo)}
         >
           <Text style={styles.buttonText}>Continuar</Text>
         </TouchableOpacity>

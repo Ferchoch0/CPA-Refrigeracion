@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
-    ScrollView,
-    Text,
-    Button,
-    StyleSheet,
-    ActivityIndicator,
-    TextInput,
-    TouchableOpacity,
-    View,
+    ScrollView, Text, StyleSheet, ActivityIndicator,
+    TextInput, TouchableOpacity, View, Image
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -17,28 +11,39 @@ import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import Constants from 'expo-constants';
+import DateTimePicker from "@react-native-community/datetimepicker";
+
+import Toast from "react-native-toast-message";
+
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 function AnswersForm() {
     const [fields, setFields] = useState([]);
     const [answers, setAnswers] = useState({});
+    const [files, setFiles] = useState({});
     const [loading, setLoading] = useState(true);
     const route = useRoute();
-    const { categoryId, equipmentId } = route.params;
+    const { categoryId, equipmentId, typeEquipId } = route.params;
+    const [showPicker, setShowPicker] = useState(null);
 
     useEffect(() => {
         const fetchFields = async () => {
             try {
+                console.log("Buscando respuestas para equipmentId:", equipmentId);
+
                 const response = await fetch(
-                    `${API_URL}/equipmentsController.php?action=getQuestions&category_id=${categoryId}`
+                    `${API_URL}/equipmentsController.php?action=getQuestionsByType&category_id=${categoryId}&type_equip_id=${typeEquipId}&equipment_id=${equipmentId}`
                 );
                 const data = await response.json();
+                console.log("Datos recibidos:", data);
 
                 if (data.error) {
                     console.error("Error del servidor:", data.error);
                     setFields([]);
+                    setAnswers({});
                 } else {
-                    setFields(data);
+                    setFields(data.questions || []);
+                    setAnswers(data.answers || {});
                 }
             } catch (error) {
                 console.error("Error en fetch:", error);
@@ -48,7 +53,7 @@ function AnswersForm() {
         };
 
         fetchFields();
-    }, [categoryId]);
+    }, [categoryId, equipmentId, typeEquipId]);
 
     const handleChange = (id, value) => {
         setAnswers((prev) => ({
@@ -59,14 +64,32 @@ function AnswersForm() {
 
     const handleFilePick = async (id) => {
         try {
-            const result = await DocumentPicker.getDocumentAsync({});
-            if (result.type === "success") {
-                handleChange(id, result.uri);
+            const result = await DocumentPicker.getDocumentAsync({
+                type: "image/*",
+                copyToCacheDirectory: true,
+            });
+
+            if (result.type === "cancel") return;
+
+            const file = result.assets ? result.assets[0] : result;
+            if (!file?.uri) {
+                alert("No se pudo obtener la URI del archivo");
+                return;
             }
+
+            setFiles((prev) => ({
+                ...prev,
+                [id]: {
+                    uri: file.uri,
+                    name: file.name || `equip_${equipmentId}_${id}.jpg`,
+                    type: file.mimeType || "image/jpeg",
+                },
+            }));
         } catch (err) {
             console.error("Error seleccionando archivo:", err);
         }
     };
+
 
     const handleSubmit = async () => {
         try {
@@ -85,36 +108,44 @@ function AnswersForm() {
             formData.append("user_id", userId);
 
             for (const [fieldId, value] of Object.entries(answers)) {
-                if (typeof value === "string" && value.startsWith("file://")) {
-                    const fileName = value.split("/").pop();
-                    formData.append(`file_${fieldId}`, {
-                        uri: value,
-                        name: fileName,
-                        type: "image/jpeg",
-                    });
-                } else {
-                    formData.append(`answer_${fieldId}`, value);
-                }
+                formData.append(`answer_${fieldId}`, value ?? "");
+            }
+
+            for (const [fieldId, file] of Object.entries(files)) {
+                formData.append(`file_${fieldId}`, {
+                    uri: file.uri,
+                    name: file.name,
+                    type: file.type,
+                });
             }
 
             const response = await fetch(
                 `${API_URL}/equipmentsController.php`,
-                {
-                    method: "POST",
-                    body: formData,
-                }
+                { method: "POST", body: formData }
             );
 
             const data = await response.json();
 
             if (data.success) {
-                alert("Respuestas guardadas con éxito");
+                Toast.show({
+                    type: "success",
+                    text1: "Éxito",
+                    text2: "Respuestas guardadas con éxito",
+                });
             } else {
-                alert("Error al guardar: " + (data.error || "Desconocido"));
+                Toast.show({
+                    type: "error",
+                    text1: "Error",
+                    text2: data.error || "No se pudo guardar",
+                });
             }
         } catch (error) {
             console.error("Error en handleSubmit:", error);
-            alert("Error en la conexión con el servidor");
+            Toast.show({
+                type: "error",
+                text1: "Error de conexión",
+                text2: "No se pudo conectar con el servidor",
+            });
         }
     };
 
@@ -155,7 +186,42 @@ function AnswersForm() {
                     )}
 
                     {field.fields_type === "file" && (
-                        <Button title="Seleccionar archivo" onPress={() => handleFilePick(field.field_equip_id)} />
+                        <View style={{ marginVertical: 10 }}>
+                            <TouchableOpacity
+                                style={styles.fileButton}
+                                onPress={() => handleFilePick(field.field_equip_id)}
+                            >
+                                <Text style={styles.fileButtonText}>
+                                    {files[field.field_equip_id]?.name
+                                        ? "Cambiar archivo"
+                                        : "Seleccionar archivo"}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {/* Previsualización */}
+                            {(files[field.field_equip_id] || answers[field.field_equip_id]) && (
+                                <Image
+                                    source={{
+                                        uri: files[field.field_equip_id]?.uri
+                                            ? files[field.field_equip_id].uri
+                                            : `${API_URL}/upload/equip/${answers[field.field_equip_id]}`,
+                                    }}
+                                    style={{ width: 120, height: 120, borderRadius: 8, marginTop: 8 }}
+                                    resizeMode="cover"
+                                />
+                            )}
+                        </View>
+                    )}
+
+                    {field.fields_type === "date" && (
+                        <TouchableOpacity
+                            style={styles.input}
+                            onPress={() => setShowPicker(field.field_equip_id)}
+                        >
+                            <Text style={{ color: answers[field.field_equip_id] ? "#003366" : "#999" }}>
+                                {answers[field.field_equip_id] || "Seleccionar fecha"}
+                            </Text>
+                        </TouchableOpacity>
                     )}
 
                     {field.fields_type === "select" && (
@@ -176,7 +242,28 @@ function AnswersForm() {
                 </React.Fragment>
             ))}
 
-            <Button title="Guardar respuestas" onPress={handleSubmit} />
+            {showPicker && (
+                <DateTimePicker
+                    value={
+                        answers[showPicker]
+                            ? new Date(answers[showPicker])
+                            : new Date()
+                    }
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                        setShowPicker(null);
+                        if (selectedDate) {
+                            const formatted = selectedDate.toISOString().split("T")[0];
+                            handleChange(showPicker, formatted);
+                        }
+                    }}
+                />
+            )}
+
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+                <Text style={styles.submitButtonText}>Guardar respuestas</Text>
+            </TouchableOpacity>
         </ScrollView>
     );
 }

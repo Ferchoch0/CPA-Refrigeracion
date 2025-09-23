@@ -6,6 +6,8 @@ import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import Constants from "expo-constants";
+import Toast from "react-native-toast-message";
+
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 const { height } = Dimensions.get("window");
@@ -26,7 +28,11 @@ export default function Profile() {
       // Normalizar data (por compatibilidad entre SDKs)
       const file = result.assets ? result.assets[0] : result;
       if (!file?.uri) {
-        Alert.alert("Error", "No se pudo obtener la URI de la imagen");
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "No se pudo obtener la URI de la imagen",
+        });
         return;
       }
 
@@ -53,13 +59,26 @@ export default function Profile() {
         const updatedUser = { ...user, photo: data.filename };
         setUser(updatedUser);
         await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
-        Alert.alert("Éxito", "Foto actualizada correctamente");
+
+        Toast.show({
+          type: "success",
+          text1: "Éxito",
+          text2: "Foto actualizada correctamente",
+        });
       } else {
-        Alert.alert("Error", data.error || "Error desconocido al subir la foto");
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: data.error || "Error desconocido al subir la foto",
+        });
       }
     } catch (error) {
       console.error("Error cambiar foto:", error);
-      Alert.alert("Error", "Ocurrió un error al subir la foto: " + error.message);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Ocurrió un error al subir la foto",
+      });
     }
   };
 

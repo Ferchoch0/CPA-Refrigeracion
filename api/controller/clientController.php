@@ -51,6 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode($result);
             break;
 
+        case 'updateClients':
+            $result = $clientModel->updateClients($data);
+            echo json_encode($result);
+            break;
+
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $data = json_decode(file_get_contents('php://input'), true);

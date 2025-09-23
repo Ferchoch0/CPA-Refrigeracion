@@ -8,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function GeneralScreen() {
     const route = useRoute();
     const navigation = useNavigation();
-    const { equipo, tipoEquipo, unidad, code, equipmentId } = route.params || {};
+    const { equipo, tipoEquipo, unidad, code, equipmentId, typeEquipId, placement } = route.params || {};
 
     const idFinal = equipo?.equipment_id || equipmentId;
 
@@ -24,14 +24,17 @@ export default function GeneralScreen() {
                 <View style={styles.headerTextBox}>
                     <Text style={styles.headerTitle}>Equipo:</Text>
                     <Text style={styles.headerSubtitle}>
-                        {equipo?.code || code}
+                        {equipo?.code || code} {equipo?.placement || placement ? `(${equipo?.placement || placement})` : ""}
                     </Text>
                 </View>
             </SafeAreaView>
             <View style={styles.divider} />
             <View style={styles.content}>
-                
-                <TimelineScreen equipmentId={idFinal} />
+
+                <TimelineScreen
+                    equipmentId={idFinal}
+                    typeEquipId={typeEquipId}
+                />
             </View>
         </View>
     );

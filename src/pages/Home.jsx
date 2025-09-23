@@ -150,10 +150,7 @@ export default function HomeScreen() {
                             <SearchBar data={allClients} onFilter={setFilteredClients} />
 
                             <View style={styles.containerClientTitle}>
-                                <Text style={styles.sectionTitle}>Últimos clientes</Text>
-                                <TouchableOpacity>
-                                    <Text style={{ color: "#b3b8d3ff" }}>Ver todos</Text>
-                                </TouchableOpacity>
+                                <Text style={styles.sectionTitle}>Clientes Asignados</Text>
                             </View>
 
 
