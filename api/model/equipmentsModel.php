@@ -128,38 +128,48 @@ class EquipmentsModel
         }
     }
 
-    function getEquipmentsByClientCompleted($clientId)
+    public function getEquipmentsByClientCompleted($clientId)
     {
         $sql = "
-            SELECT 
-                e.equipment_id,
-                e.client_id,
-                c.company_name AS client_name,
-                e.type_equip_id,
-                e.status,
-                e.code,
-                te.name AS type_name,
-                u.name AS tecnico,
-                eh.date AS ultima_intervencion,
-                eh.action AS tipo_intervencion
-            FROM equipments e
-            INNER JOIN type_equipments te 
-                ON e.type_equip_id = te.type_equip_id
-            INNER JOIN clients c
-                ON e.client_id = c.client_id
-            LEFT JOIN (
-                SELECT equipment_id, MAX(date) AS ultima_fecha
-                FROM equipments_history
-                GROUP BY equipment_id
-            ) ult
-                ON e.equipment_id = ult.equipment_id
-            LEFT JOIN equipments_history eh
-                ON e.equipment_id = eh.equipment_id 
-                AND eh.date = ult.ultima_fecha
-            LEFT JOIN users u
-                ON eh.user_id = u.user_id
-            WHERE e.client_id = ?
-        ";
+        SELECT 
+            e.equipment_id,
+            e.client_id,
+            c.company_name AS client_name,
+            e.type_equip_id,
+            e.status,
+            e.code,
+            te.name AS type_name,
+            u.name AS tecnico,
+            eh.date AS ultima_intervencion,
+            eh.action AS tipo_intervencion,
+            q.field_equip_id AS pregunta_id,
+            q.name AS pregunta_nombre,
+            q.description AS pregunta_descripcion,
+            a.answers_id,
+            a.value AS respuesta_valor
+        FROM equipments e
+        INNER JOIN type_equipments te 
+            ON e.type_equip_id = te.type_equip_id
+        INNER JOIN clients c
+            ON e.client_id = c.client_id
+        LEFT JOIN (
+            SELECT equipment_id, MAX(date) AS ultima_fecha
+            FROM equipments_history
+            GROUP BY equipment_id
+        ) ult
+            ON e.equipment_id = ult.equipment_id
+        LEFT JOIN equipments_history eh
+            ON e.equipment_id = eh.equipment_id 
+            AND eh.date = ult.ultima_fecha
+        LEFT JOIN users u
+            ON eh.user_id = u.user_id
+        LEFT JOIN fields_equipment q
+            ON q.field_equip_id = 105   -- 🔹 solo la pregunta que te interesa
+        LEFT JOIN answers a
+            ON a.field_equip_id = q.field_equip_id
+            AND a.equipments_id = e.equipment_id
+        WHERE e.client_id = ?
+    ";
 
         $stmt = $this->conn->prepare($sql);
         if ($stmt) {
