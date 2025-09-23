@@ -251,6 +251,134 @@ class EquipmentsModel
         return $rows;
     }
 
+    public function getAllQuestionsCategoriesWithAnswers($equipmentId)
+    {
+        $sql = "
+        SELECT 
+            c.field_category_id,
+            c.name AS category_name,
+            c.description AS category_description,
+            c.ord,
+            q.field_equip_id,
+            q.name AS question_name,
+            q.description AS question_description,
+            a.answers_id,
+            a.value AS answer_value
+        FROM fields_category c
+        LEFT JOIN fields_equipment q
+            ON q.field_category_id = c.field_category_id
+        LEFT JOIN answers a
+            ON a.field_equip_id = q.field_equip_id
+            AND a.equipments_id = ?
+        GROUP BY c.field_category_id, q.field_equip_id, a.answers_id
+        ORDER BY c.ord ASC, q.field_equip_id ASC
+    ";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("i", $equipmentId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if (!$result) {
+            return ['error' => 'ERR_DB_CONN'];
+        }
+
+        $rows = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        if (empty($rows)) {
+            return ['error' => 'ERR_CATEGORY_NOT_FOUND'];
+        }
+
+        // Agrupamos por categoría
+        $categories = [];
+        foreach ($rows as $row) {
+            $catId = $row['field_category_id'];
+
+            if (!isset($categories[$catId])) {
+                $categories[$catId] = [
+                    'field_category_id' => $catId,
+                    'name' => $row['category_name'],
+                    'description' => $row['category_description'],
+                    'ord' => $row['ord'],
+                    'questions' => []
+                ];
+            }
+
+            if ($row['field_equip_id']) {
+                $categories[$catId]['questions'][] = [
+                    'field_equip_id' => $row['field_equip_id'],
+                    'name' => $row['question_name'],
+                    'description' => $row['question_description'],
+                    'answer_id' => $row['answers_id'],
+                    'answer_value' => $row['answer_value']
+                ];
+            }
+        }
+
+        return array_values($categories);
+    }
+
+
+    public function getByCode($code)
+    {
+        $sql = "
+        SELECT 
+            e.equipment_id,
+            e.client_id,
+            e.type_equip_id,
+            t.name AS type_name,
+            t.initial AS type_initial,
+            e.code,
+            e.status,
+            e.placement,
+            a.field_equip_id,
+            a.value AS answer_value
+        FROM equipments e
+        INNER JOIN type_equipments t 
+            ON e.type_equip_id = t.type_equip_id
+        LEFT JOIN answers a 
+            ON a.equipments_id = e.equipment_id
+            AND a.field_equip_id IN (1,2,3,4,19,20,101,102,103,104,105)
+        WHERE e.code = ?
+    ";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("s", $code);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $stmt->close();
+
+        if ($result->num_rows === 0) {
+            return ['error' => 'ERR_EQUIP_NOT_FOUND'];
+        }
+
+        // Reestructuramos para que las respuestas queden en un array asociativo
+        $row = null;
+        $answers = [];
+        while ($r = $result->fetch_assoc()) {
+            if ($row === null) {
+                $row = [
+                    'equipment_id' => $r['equipment_id'],
+                    'client_id' => $r['client_id'],
+                    'type_equip_id' => $r['type_equip_id'],
+                    'type_name' => $r['type_name'],
+                    'type_initial' => $r['type_initial'],
+                    'code' => $r['code'],
+                    'status' => $r['status'],
+                    'placement' => $r['placement'],
+                    'answers' => []
+                ];
+            }
+            if ($r['field_equip_id']) {
+                $answers[$r['field_equip_id']] = $r['answer_value'];
+            }
+        }
+        $row['answers'] = $answers;
+
+        return $row;
+    }
+
 
     public function getQuestionsByType($categoryId, $typeEquipId, $equipmentId = null)
     {
@@ -334,6 +462,41 @@ class EquipmentsModel
         ];
     }
 
+    public function getHistoryByEquipmentId($equipmentId)
+    {
+        $sql = "
+        SELECT 
+            h.history_equip_id,
+            h.user_id,
+            u.name AS user_name,
+            h.equipment_id,
+            h.action,
+            h.date
+        FROM equipments_history h
+        LEFT JOIN users u ON u.user_id = h.user_id
+        WHERE h.equipment_id = ?
+        ORDER BY h.date DESC
+    ";
+
+        $stmt = $this->conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $equipmentId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $rows = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+
+            if (empty($rows)) {
+                return ['error' => 'ERR_HISTORY_NOT_FOUND'];
+            }
+
+            return $rows;
+        } else {
+            return ['error' => 'ERR_DB_CONN'];
+        }
+    }
+
+
     public function getQuestionsByCategory($categoryId)
     {
         $sql = "
@@ -345,7 +508,6 @@ class EquipmentsModel
         fe.fields_type,
         fo.option_id,
         fo.value AS option_value,
-        fo.label AS option_label
     FROM fields_equipment fe
     LEFT JOIN field_options fo
         ON fe.field_equip_id = fo.field_equip_id
@@ -435,42 +597,6 @@ class EquipmentsModel
             return ['error' => $e->getMessage()];
         }
     }
-
-
-    // public function saveImage($equipmentId, $filename, $userId)
-    // {
-    //     // Insertar o actualizar registro en la tabla images
-    //     $sql = "INSERT INTO images (equipment_id, name) 
-    //         VALUES (?, ?)
-    //         ON DUPLICATE KEY UPDATE name = VALUES(name)";
-    //     $stmt = $this->conn->prepare($sql);
-
-    //     if (!$stmt) {
-    //         return ['success' => false, 'error' => 'ERR_DB_PREPARE'];
-    //     }
-
-    //     $stmt->bind_param("is", $equipmentId, $filename);
-    //     $ok = $stmt->execute();
-    //     $stmt->close();
-
-    //     if (!$ok) {
-    //         return ['success' => false, 'error' => 'ERR_DB_EXECUTE'];
-    //     }
-
-    //     // Registrar historial
-    //     $action = "Se actualizó la foto del equipo";
-    //     $historySql = "INSERT INTO equipments_history (equipment_id, user_id, action) 
-    //                VALUES (?, ?, ?)";
-    //     $stmtHist = $this->conn->prepare($historySql);
-    //     if ($stmtHist) {
-    //         $stmtHist->bind_param("iis", $equipmentId, $userId, $action);
-    //         $stmtHist->execute();
-    //         $stmtHist->close();
-    //     }
-
-    //     return ['success' => true, 'file' => $filename];
-    // }
-
 
     public function getQuestionsById($id)
     {

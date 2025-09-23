@@ -226,6 +226,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
+
+        case 'getByCode':
+            try {
+                if (isset($_GET['code'])) {
+                    $code = $_GET['code'];
+                    $result = $equipmentsModel->getByCode($code);
+                    echo json_encode($result);
+                } else {
+                    echo json_encode(['error' => 'ERR_CODE_REQUIRED']);
+                }
+            } catch (Exception $e) {
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            break;
+
+        case 'getQuestionsAnswersCategories':
+            try {
+                if (isset($_GET['equipment_id'])) {
+                    $equipmentId = intval($_GET['equipment_id']);
+                    $result = $equipmentsModel->getAllQuestionsCategoriesWithAnswers($equipmentId);
+                    echo json_encode($result);
+                } else {
+                    echo json_encode(['error' => 'ERR_EQUIP_ID_REQUIRED']);
+                }
+            } catch (Exception $e) {
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            break;
+
+
         case 'getQuestionsByType':
             try {
                 if (isset($_GET['category_id'], $_GET['type_equip_id'])) {
@@ -250,6 +280,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $categoryId = intval($_GET['category_id']);
                     $result = $equipmentsModel->getQuestionsByCategory($categoryId);
                     echo json_encode($result);
+                }
+            } catch (Exception $e) {
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            break;
+
+        case 'getHistory':
+            try {
+                if (isset($_GET['equipment_id'])) {
+                    $equipmentId = intval($_GET['equipment_id']);
+                    $result = $equipmentsModel->getHistoryByEquipmentId($equipmentId);
+                    echo json_encode($result);
+                } else {
+                    echo json_encode(['error' => 'ERR_EQUIPMENT_ID_REQUIRED']);
                 }
             } catch (Exception $e) {
                 echo json_encode(['error' => $e->getMessage()]);
