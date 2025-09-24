@@ -60,6 +60,7 @@ export default function LoginScreen({ navigation }) {
           keyboardType="email-address" 
           value={email}
           onChangeText={setEmail}
+          placeholderTextColor="#808080" 
         />
         
         <TextInput 
@@ -68,6 +69,7 @@ export default function LoginScreen({ navigation }) {
           secureTextEntry
           value={pass}
           onChangeText={setPass}
+          placeholderTextColor="#808080" 
         />
 
         <TouchableOpacity>
