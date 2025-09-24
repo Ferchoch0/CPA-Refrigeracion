@@ -67,6 +67,7 @@ const SearchBar = ({ data, onFilter }) => {
                 placeholder="Buscar cliente..."
                 value={search}
                 onChangeText={handleSearch}
+                placeholderTextColor="#808080" 
             />
         </View>
     );

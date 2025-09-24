@@ -172,6 +172,7 @@ function AnswersForm() {
                             placeholder={field.description || field.name}
                             value={answers[field.field_equip_id] || ""}
                             onChangeText={(val) => handleChange(field.field_equip_id, val)}
+                            placeholderTextColor="#808080" 
                         />
                     )}
 
@@ -182,6 +183,7 @@ function AnswersForm() {
                             placeholder={field.description || field.name}
                             value={answers[field.field_equip_id] || ""}
                             onChangeText={(val) => handleChange(field.field_equip_id, val)}
+                            placeholderTextColor="#808080" 
                         />
                     )}
 
