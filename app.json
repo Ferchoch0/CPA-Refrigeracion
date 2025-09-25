@@ -2,6 +2,7 @@
   "expo": {
     "name": "CPA-Refrigeracion",
     "slug": "CPA-Refrigeracion",
+    "owner": "dieguinchis",
     "version": "1.0.0",
     "icon": "./assets/logo2.png",
     "platforms": [
@@ -12,9 +13,9 @@
       "package": "com.cparefrigeracion.app"
     },
     "extra": {
-      "API_URL": "http://192.168.1.40/CPA-Refrigeracion/api/controller",
+      "API_URL": "https://alison-unresistant-flourishingly.ngrok-free.dev/MIAPP/api/controller",
       "eas": {
-        "projectId": "07060b9f-255b-4316-b4ef-f04421e0cb4e"
+        "projectId": "8646e37a-e305-4b2f-ae18-36a3274d494c"
       }
     },
     "plugins": [

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   SafeAreaView, View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Image, StatusBar, Alert
+  StyleSheet, Image, StatusBar, Alert, KeyboardAvoidingView, Platform
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -47,47 +47,49 @@ export default function LoginScreen({ navigation }) {
         <Text style={styles.subtitle}>Bienvenido</Text>
       </View>
 
-      <View style={styles.form}>
-        <Text style={styles.form_title}> Ingresar {"\n"} usuario </Text>
-        <Image
-          source={require("../../assets/refrigerador.png")}
-          style={styles.refrigerador}
-          resizeMode="contain"
-        />
-        <TextInput 
-          placeholder="Email" 
-          style={styles.input} 
-          keyboardType="email-address" 
-          value={email}
-          onChangeText={setEmail}
-          placeholderTextColor="#808080" 
-        />
-        
-        <TextInput 
-          placeholder="Contraseña" 
-          style={styles.input} 
-          secureTextEntry
-          value={pass}
-          onChangeText={setPass}
-          placeholderTextColor="#808080" 
-        />
-
-        <TouchableOpacity>
-          <Text style={styles.forgot}>¿Olvidaste tu contraseña?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-          <Text style={styles.loginText}>Iniciar sesión</Text>
-        </TouchableOpacity>
-
-        <View style={styles.logoContainer}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 2, width: "100%" }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <View style={styles.form}>
+          <Text style={styles.form_title}> Ingresar {"\n"} usuario </Text>
           <Image
-            source={require("../../assets/logo.png")}
-            style={styles.logo}
+            source={require("../../assets/refrigerador.png")}
+            style={styles.refrigerador}
             resizeMode="contain"
           />
+          <TextInput 
+            placeholder="Email" 
+            style={styles.input} 
+            keyboardType="email-address" 
+            value={email}
+            onChangeText={setEmail}
+            placeholderTextColor="#808080" 
+          />
+          
+          <TextInput 
+            placeholder="Contraseña" 
+            style={styles.input} 
+            secureTextEntry
+            value={pass}
+            onChangeText={setPass}
+            placeholderTextColor="#808080" 
+          />
+
+          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
+            <Text style={styles.loginText}>Iniciar sesión</Text>
+          </TouchableOpacity>
+
+          <View style={styles.logoContainer}>
+            <Image
+              source={require("../../assets/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
