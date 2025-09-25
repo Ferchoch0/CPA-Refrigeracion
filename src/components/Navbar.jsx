@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import Icon from "react-native-vector-icons/Ionicons";
+import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from "../pages/Home"; // Tu pantalla real de Home
 import ProfileScreen from "../pages/Profile";
@@ -25,7 +25,7 @@ export default function Navbar() {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Icon name="home" size={26} color={color} />
+            <Ionicons name="home" size={26} color={color} />
           ),
         }}
       />
@@ -37,7 +37,7 @@ export default function Navbar() {
         options={{
           tabBarIcon: () => (
             <View style={styles.centerButton}>
-              <Icon name="qr-code" size={28} color="#fff" />
+              <Ionicons name="qr-code" size={28} color="#fff" />
             </View>
           ),
           tabBarLabel: "",
@@ -50,7 +50,7 @@ export default function Navbar() {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Icon name="person" size={26} color={color} />
+            <Ionicons name="person" size={26} color={color} />
           ),
         }}
       />
