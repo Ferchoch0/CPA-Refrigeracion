@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Toast from "react-native-toast-message";
+import * as Font from "expo-font";
+import { Ionicons } from "@expo/vector-icons";
 
 import SplashScreen from "./src/pages/SplashScreen";
 import LoginScreen from "./src/pages/Login";
@@ -10,41 +12,41 @@ import EquiposScreen from "./src/pages/Equipos";
 import TipoEquipoScreen from "./src/components/TipoEquipo";
 import FormGeneral from "./src/pages/FormGeneral";
 import AnswersScreen from "./src/pages/Answers";
-import ProfileScreen from "./src/pages/Profile"; // Importa tu pantalla de perfil
+import ProfileScreen from "./src/pages/Profile";
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadFonts() {
+      // Cargar fuentes de Ionicons para todos los iconos de la app
+      await Font.loadAsync(Ionicons.font);
+      setFontsLoaded(true);
+    }
+    loadFonts();
+  }, []);
+
+  if (!fontsLoaded) {
+    return null; // podés reemplazar por un SplashScreen mientras carga
+  }
+
   return (
     <>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {/* Pantalla inicial: SplashScreen */}
           <Stack.Screen name="Splash" component={SplashScreen} />
-
-          {/* Login no tiene navbar */}
           <Stack.Screen name="Login" component={LoginScreen} />
-
-          {/* Después del login, mostramos el Navbar */}
           <Stack.Screen name="Main" component={Navbar} />
-
-          {/* Agrega Equipos como pantalla normal */}
           <Stack.Screen name="Equipos" component={EquiposScreen} />
-
-          {/* Modal para TipoEquipo */}
           <Stack.Screen
             name="TipoEquipo"
             component={TipoEquipoScreen}
             options={{ presentation: "modal", headerShown: false }}
           />
-
-          {/* Página normal para FormGeneral */}
           <Stack.Screen name="FormGeneral" component={FormGeneral} />
-
-          {/* Agrega Equipos como pantalla normal */}
           <Stack.Screen name="Preguntas" component={AnswersScreen} />
-
-          {/* Perfil como modal para animación de abajo hacia arriba */}
           <Stack.Screen
             name="Perfil"
             component={ProfileScreen}
@@ -52,7 +54,6 @@ export default function App() {
           />
         </Stack.Navigator>
       </NavigationContainer>
-
       <Toast />
     </>
   );
