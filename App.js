@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Toast from "react-native-toast-message";
 import * as Font from "expo-font";
 import { Ionicons } from "@expo/vector-icons";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import SplashScreen from "./src/pages/SplashScreen";
 import LoginScreen from "./src/pages/Login";
@@ -29,11 +30,11 @@ export default function App() {
   }, []);
 
   if (!fontsLoaded) {
-    return null; // podés reemplazar por un SplashScreen mientras carga
+    return null; // podés poner un <SplashScreen /> acá si querés
   }
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={SplashScreen} />
@@ -55,6 +56,6 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
       <Toast />
-    </>
+    </GestureHandlerRootView>
   );
-} 
+}

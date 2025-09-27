@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import {
-  SafeAreaView, View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Image, StatusBar, Alert, KeyboardAvoidingView, Platform
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, Image, Alert
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
@@ -29,7 +31,6 @@ export default function LoginScreen({ navigation }) {
       if (result.success) {
         await AsyncStorage.setItem('user', JSON.stringify(result.user));
         navigation.navigate("Main", { user: result.user });
-        console.log({user: result.user})
       } else {
         Alert.alert("Error", result.error || "Credenciales inválidas");
       }
@@ -39,73 +40,98 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#003366" />
-
-      <View style={styles.header}>
-        <Text style={styles.title}>HOLA!</Text>
-        <Text style={styles.subtitle}>Bienvenido</Text>
-      </View>
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 2, width: "100%" }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#003366" }}>
+      <KeyboardAwareScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={10} // ajusta el empuje
       >
-        <View style={styles.form}>
-          <Text style={styles.form_title}> Ingresar {"\n"} usuario </Text>
-          <Image
-            source={require("../../assets/refrigerador.png")}
-            style={styles.refrigerador}
-            resizeMode="contain"
-          />
-          <TextInput 
-            placeholder="Email" 
-            style={styles.input} 
-            keyboardType="email-address" 
-            value={email}
-            onChangeText={setEmail}
-            placeholderTextColor="#808080" 
-          />
-          
-          <TextInput 
-            placeholder="Contraseña" 
-            style={styles.input} 
-            secureTextEntry
-            value={pass}
-            onChangeText={setPass}
-            placeholderTextColor="#808080" 
-          />
+        <View style={{ flex: 1, justifyContent: "space-between" }}>
+          <View style={styles.header}>
+            <Text style={styles.title}>HOLA!</Text>
+            <Text style={styles.subtitle}>Bienvenido</Text>
+          </View>
 
-          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-            <Text style={styles.loginText}>Iniciar sesión</Text>
-          </TouchableOpacity>
-
-          <View style={styles.logoContainer}>
+          <View style={styles.form}>
+            <Text style={styles.form_title}>Ingresar {"\n"} usuario</Text>
             <Image
-              source={require("../../assets/logo.png")}
-              style={styles.logo}
+              source={require("../../assets/refrigerador.png")}
+              style={styles.refrigerador}
               resizeMode="contain"
             />
+
+            <TextInput
+              placeholder="Email"
+              style={styles.input}
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              placeholderTextColor="#808080"
+            />
+
+            <TextInput
+              placeholder="Contraseña"
+              style={styles.input}
+              secureTextEntry
+              value={pass}
+              onChangeText={setPass}
+              placeholderTextColor="#808080"
+            />
+
+            <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
+              <Text style={styles.loginText}>Iniciar sesión</Text>
+            </TouchableOpacity>
+
+            <View style={styles.logoContainer}>
+              <Image
+                source={require("../../assets/logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#003366", alignItems: "center", justifyContent: "center" },
-  header: { width: "100%", alignItems: "center", justifyContent: "center", marginTop: 40, flex: 1 },
-  logoContainer: { alignItems: "center", borderTopWidth: 1, borderTopColor: "#b1b1b1ff", marginTop: 30, paddingTop: 20, width: "100%" },
+  header: { alignItems: "center", justifyContent: "center", marginTop: 40 },
+  logoContainer: {
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#EAF4FA",
+    width: "100%",
+    marginTop: 30,
+  },
   logo: { width: 220 },
   refrigerador: { position: "absolute", top: -50, right: -210, zIndex: 10, height: 200 },
   title: { fontSize: 50, fontWeight: "bold", color: "#fff", letterSpacing: 2, fontStyle: "italic" },
   subtitle: { fontSize: 16, color: "#fff", marginBottom: 30, fontStyle: "italic" },
-  form: { padding: 40, width: "100%", borderTopLeftRadius: 40, borderTopRightRadius: 40, backgroundColor: "#EAF4FA" },
+  form: {
+    padding: 40,
+    width: "100%",
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    backgroundColor: "#EAF4FA",
+    justifyContent: "flex-start",
+  },
   form_title: { fontSize: 38, letterSpacing: 2, fontWeight: "bold", color: "#003366", marginBottom: 32 },
-  input: { backgroundColor: "#fff", borderRadius: 25, padding: 15, marginBottom: 15, borderWidth: 1, borderColor: "#ddd" },
-  forgot: { color: "#033D94", textAlign: "right", marginBottom: 20 },
-  loginBtn: { backgroundColor: "#003366", borderRadius: 25, padding: 15, alignItems: "center" },
-  loginText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  input: {
+    backgroundColor: "#fff",
+    borderRadius: 25,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#ddd"
+  },
+  loginBtn: {
+    backgroundColor: "#003366",
+    borderRadius: 25,
+    padding: 15,
+    alignItems: "center"
+  },
+  loginText: { color: "#EAF4FA", fontSize: 16, fontWeight: "bold" }
 });

@@ -138,6 +138,7 @@ class EquipmentsModel
             e.type_equip_id,
             e.status,
             e.code,
+            e.placement,
             te.name AS type_name,
             u.name AS tecnico,
             eh.date AS ultima_intervencion,
@@ -164,7 +165,7 @@ class EquipmentsModel
         LEFT JOIN users u
             ON eh.user_id = u.user_id
         LEFT JOIN fields_equipment q
-            ON q.field_equip_id = 105   -- 🔹 solo la pregunta que te interesa
+            ON q.field_equip_id = 105
         LEFT JOIN answers a
             ON a.field_equip_id = q.field_equip_id
             AND a.equipments_id = e.equipment_id
@@ -590,8 +591,31 @@ class EquipmentsModel
 
             $stmt->close();
 
-            // Insertar acción en historial (una sola vez)
-            $action = "Llenado de formulario";
+            // --- Obtener categoría del primer field ---
+            $firstFieldId = array_key_first($answers);
+            $categoryName = "Categoría desconocida";
+
+            if ($firstFieldId) {
+                $sqlCat = "SELECT c.name 
+                       FROM fields_category c
+                       JOIN fields_equipment f 
+                         ON f.field_category_id = c.field_category_id
+                       WHERE f.field_equip_id = ?";
+                $stmtCat = $this->conn->prepare($sqlCat);
+                $stmtCat->bind_param("i", $firstFieldId);
+                $stmtCat->execute();
+                $resultCat = $stmtCat->get_result();
+
+                if ($row = $resultCat->fetch_assoc()) {
+                    $categoryName = $row['name'];
+                }
+
+                $stmtCat->close();
+            }
+
+            // --- Insertar acción en historial ---
+            $action = "Cargo " . count($answers) . " respuestas en la categoría: " . $categoryName;
+
             $sqlHist = "INSERT INTO equipments_history (user_id, equipment_id, action) 
                     VALUES (?, ?, ?)";
             $stmtHist = $this->conn->prepare($sqlHist);
@@ -608,6 +632,8 @@ class EquipmentsModel
             return ['error' => $e->getMessage()];
         }
     }
+
+
 
     public function getQuestionsById($id)
     {
