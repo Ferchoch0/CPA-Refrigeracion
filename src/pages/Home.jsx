@@ -19,7 +19,6 @@ const Navbar = () => {
                     />
                 </View>
                 <Text style={styles.navTitle}>Inicio</Text>
-                <Ionicons name="notifications-outline" size={24} color="#fff" />
             </View>
         </SafeAreaView>
     );
@@ -182,22 +181,19 @@ const styles = StyleSheet.create({
         borderBottomColor: "#002244",
     },
 
-    logoWrapper: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: "#fff",
-        justifyContent: "center",
-        alignItems: "center",
-    },
+
 
     logoImage: {
-        width: 45,
-        height: 45,
+        width: 55,
+        height: 55,
         resizeMode: "contain",
     },
 
     navTitle: {
+        position: "absolute", 
+        left: 0,
+        right: 0,
+        textAlign: "center",
         fontSize: 20,
         fontWeight: "bold",
         color: "#fff",
