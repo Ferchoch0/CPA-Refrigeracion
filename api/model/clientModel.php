@@ -56,22 +56,18 @@ class ClientModel
         $stmt->close();
 
         // Insertar asignación
-        if (!empty($data['technician_id'])) {
-            $technician_id = $data['technician_id'];
-            $stmt2 = $this->conn->prepare("
+        if (!empty($data['technicians']) && is_array($data['technicians'])) {
+            foreach ($data['technicians'] as $technician_id) {
+                $stmt2 = $this->conn->prepare("
             INSERT INTO assignment (client_id, user_id)
             VALUES (?, ?)
         ");
-            if (!$stmt2)
-                return ['error' => 'ERR_DB_ASSIGN_PREPARE'];
-
-            $stmt2->bind_param("ii", $client_id, $technician_id);
-
-            if (!$stmt2->execute()) {
-                $stmt2->close();
-                return ['error' => 'ERR_DB_ASSIGN_EXECUTE'];
+                if ($stmt2) {
+                    $stmt2->bind_param("ii", $client_id, $technician_id);
+                    $stmt2->execute();
+                    $stmt2->close();
+                }
             }
-            $stmt2->close();
         }
 
         // Insertar registro en auditoría
@@ -145,16 +141,26 @@ class ClientModel
 
         $stmt->close();
 
-        if ($technician_id) {
-            $stmtAssign = $this->conn->prepare("
-            UPDATE assignment 
-            SET user_id = ? 
-            WHERE client_id = ?
+        if (!empty($data['technicians']) && is_array($data['technicians'])) {
+            // Borrar asignaciones actuales
+            $stmtDel = $this->conn->prepare("DELETE FROM assignment WHERE client_id = ?");
+            if ($stmtDel) {
+                $stmtDel->bind_param("i", $client_id);
+                $stmtDel->execute();
+                $stmtDel->close();
+            }
+
+            // Insertar nuevas asignaciones
+            foreach ($data['technicians'] as $technician_id) {
+                $stmtAssign = $this->conn->prepare("
+            INSERT INTO assignment (client_id, user_id)
+            VALUES (?, ?)
         ");
-            if ($stmtAssign) {
-                $stmtAssign->bind_param("ii", $technician_id, $client_id);
-                $stmtAssign->execute();
-                $stmtAssign->close();
+                if ($stmtAssign) {
+                    $stmtAssign->bind_param("ii", $client_id, $technician_id);
+                    $stmtAssign->execute();
+                    $stmtAssign->close();
+                }
             }
         }
 
