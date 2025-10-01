@@ -102,6 +102,7 @@ class ClientModel
         $phone = $data['phone'] ?? '';
         $date_visit = $data['date_visit'] ?? '';
         $email = $data['email'] ?? '';
+        $technician_id = $data['technician_id'] ?? null;
         $user_id = $data['user_id'] ?? null; // admin que realiza la acción
 
         // Validar campos obligatorios
@@ -143,6 +144,19 @@ class ClientModel
         }
 
         $stmt->close();
+
+        if ($technician_id) {
+            $stmtAssign = $this->conn->prepare("
+            UPDATE assignment 
+            SET user_id = ? 
+            WHERE client_id = ?
+        ");
+            if ($stmtAssign) {
+                $stmtAssign->bind_param("ii", $technician_id, $client_id);
+                $stmtAssign->execute();
+                $stmtAssign->close();
+            }
+        }
 
         // Insertar registro en auditoría
         $action = "Actualización de cliente: " . $company_name;
