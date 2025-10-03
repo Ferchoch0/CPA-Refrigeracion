@@ -609,7 +609,8 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#003366",
     paddingLeft: 0,
-    paddingBottom: 30,
+    paddingBottom: 40,
+    paddingTop: 18,
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
     shadowColor: "#000",
@@ -639,24 +640,9 @@ const styles = StyleSheet.create({
     color: "#e0e6ed",
     fontWeight: "500",
   },
-  logoBox: {
-    marginLeft: 16,
-    backgroundColor: "#fff",
-    borderRadius: 24,
-    padding: 4,
-    width: 48,
-    height: 48,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 2,
-  },
   logoImg: {
-    width: 36,
-    height: 36,
+    width: 60,
+    height: 60,
   },
 
   bodyContainer: {
