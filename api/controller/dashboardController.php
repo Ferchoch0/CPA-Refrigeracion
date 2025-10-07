@@ -16,7 +16,7 @@ $dashboardModel = new DashboardModel($conn);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-     $data = json_decode(file_get_contents('php://input'), true);
+    $data = json_decode(file_get_contents('php://input'), true);
 
     if (!$data) {
         $data = $_POST;
@@ -58,7 +58,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'data' => $categories
             ]);
             break;
-        
+
+        case 'getWeeklyForms':
+            $weeklyForms = $dashboardModel->getWeeklyForms();
+            echo json_encode([
+                'success' => true,
+                'data' => $weeklyForms
+            ]);
+            break;
+
         default:
             echo json_encode([
                 'success' => false,
@@ -66,6 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             break;
     }
+
+
 } else {
     echo json_encode([
         'success' => false,

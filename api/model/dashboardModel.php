@@ -32,7 +32,7 @@ class DashboardModel
         if ($res && $row = $res->fetch_assoc())
             $metrics['techniciansActive'] = (int) $row['total'];
 
-        // Formularios totales
+        // Formularios totales (respuestas registradas)
         $res = $this->conn->query("SELECT COUNT(*) as total FROM answers");
         if ($res && $row = $res->fetch_assoc())
             $metrics['formsTotal'] = (int) $row['total'];
@@ -42,6 +42,9 @@ class DashboardModel
         if ($res && $row = $res->fetch_assoc())
             $metrics['satisfactionRate'] = round((float) $row['avgScore'], 1);
 
+        // Resolution Rate (separado en su propia función)
+        $metrics['resolutionRate'] = $this->calculateResolutionRate();
+
         // ===== FIN DE CONSULTAS =====
         $serverEnd = microtime(true);
 
@@ -49,6 +52,37 @@ class DashboardModel
         $metrics['avgResponseTime'] = round(($serverEnd - $serverStart) * 1000, 2) . 'ms';
 
         return $metrics;
+    }
+
+    private function calculateResolutionRate()
+    {
+        // Total de preguntas definidas
+        $res = $this->conn->query("SELECT COUNT(*) as total_fields FROM fields_equipment");
+        $totalFields = ($res && $row = $res->fetch_assoc()) ? (int) $row['total_fields'] : 0;
+
+        if ($totalFields === 0) {
+            return 0;
+        }
+
+        // Respuestas agrupadas por formulario
+        $res = $this->conn->query("
+        SELECT equipments_id, COUNT(*) as answered
+        FROM answers
+        GROUP BY equipments_id
+    ");
+
+        $sumPercent = 0;
+        $formCount = 0;
+
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $completion = ($row['answered'] / $totalFields) * 100;
+                $sumPercent += $completion;
+                $formCount++;
+            }
+        }
+
+        return $formCount > 0 ? round($sumPercent / $formCount, 1) : 0;
     }
 
     public function getRecentActivities($limit = 10)
@@ -187,8 +221,12 @@ class DashboardModel
 
     private function getRelativeTime($date)
     {
-        $now = new DateTime();
-        $activityDate = new DateTime($date);
+        // Forzar zona horaria de Argentina
+        $tz = new DateTimeZone('America/Argentina/Buenos_Aires');
+
+        $now = new DateTime('now', $tz);
+        $activityDate = new DateTime($date, $tz);
+
         $diff = $now->diff($activityDate);
 
         if ($diff->days > 7) {
@@ -315,5 +353,40 @@ class DashboardModel
         }
 
         return $stats;
+    }
+
+    public function getWeeklyForms()
+    {
+        $data = [];
+
+        $res = $this->conn->query("
+        SELECT 
+            YEARWEEK(date, 1) as week, 
+            COUNT(DISTINCT equipment_id) as total
+        FROM equipments_history
+        WHERE action = 'Llenado de formulario'
+        GROUP BY YEARWEEK(date, 1)
+        ORDER BY week DESC
+        LIMIT 4
+    ");
+
+        if ($res) {
+            $rows = [];
+            while ($row = $res->fetch_assoc()) {
+                $rows[] = $row;
+            }
+
+            $rows = array_reverse($rows); // ordenar cronológicamente
+
+            $counter = 1;
+            foreach ($rows as $row) {
+                $data[] = [
+                    'week' => "Semana " . $counter++,
+                    'total' => (int) $row['total']
+                ];
+            }
+        }
+
+        return $data;
     }
 }
