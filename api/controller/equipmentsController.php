@@ -90,6 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Procesar archivos como respuestas también
+                // Procesar archivos (múltiples imágenes)
+                $imageCount = 0;
                 if (!empty($_FILES)) {
                     foreach ($_FILES as $key => $file) {
                         if ($file['error'] === UPLOAD_ERR_OK) {
@@ -99,12 +101,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
 
                             $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-                            $filename = "equip{$equipmentId}." . strtolower($ext);
+                            $filename = uniqid("equip{$equipmentId}_") . "." . strtolower($ext);
                             $targetPath = $uploadDir . $filename;
 
                             if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-                                $fieldId = str_replace("file_", "", $key); // ej: file_12 → fieldId=12
-                                $answers[$fieldId] = $filename;
+                                // Registrar imagen en base de datos
+                                $stmt = $conn->prepare("INSERT INTO images (equipment_id, name, date) VALUES (?, ?, NOW())");
+                                $stmt->bind_param("is", $equipmentId, $filename);
+                                $stmt->execute();
+                                $stmt->close();
+
+                                $imageCount++;
                             } else {
                                 echo json_encode(['error' => 'ERR_UPLOAD_FAILED']);
                                 exit;
@@ -316,6 +323,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $equipmentsModel->getEquipTypes();
             echo json_encode($result);
             break;
+
+        case 'getImage':
+            if (isset($_GET['name'])) {
+                $imagePath = __DIR__ . '/upload/equip/' . basename($_GET['name']);
+                if (file_exists($imagePath)) {
+                    $mime = mime_content_type($imagePath);
+                    header("Content-Type: $mime");
+                    header('Content-Length: ' . filesize($imagePath));
+                    readfile($imagePath);
+                } else {
+                    http_response_code(404);
+                    header('Content-Type: text/plain; charset=utf-8');
+                    echo "Imagen no encontrada";
+                }
+            } else {
+                http_response_code(400);
+                header('Content-Type: text/plain; charset=utf-8');
+                echo "Parámetro 'name' requerido";
+            }
+            exit;
 
 
         default:
