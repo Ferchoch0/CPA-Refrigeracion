@@ -66,24 +66,25 @@ function AnswersForm() {
         try {
             const result = await DocumentPicker.getDocumentAsync({
                 type: "image/*",
+                multiple: true,
                 copyToCacheDirectory: true,
             });
 
             if (result.type === "cancel") return;
 
-            const file = result.assets ? result.assets[0] : result;
-            if (!file?.uri) {
-                alert("No se pudo obtener la URI del archivo");
-                return;
-            }
+            const selectedFiles = result.assets || [result];
+            const validFiles = selectedFiles.filter(f => f.uri);
 
             setFiles((prev) => ({
                 ...prev,
-                [id]: {
-                    uri: file.uri,
-                    name: file.name || `equip_${equipmentId}_${id}.jpg`,
-                    type: file.mimeType || "image/jpeg",
-                },
+                [id]: [
+                    ...(prev[id] || []),
+                    ...validFiles.map(file => ({
+                        uri: file.uri,
+                        name: file.name || `equip_${equipmentId}_${id}_${Date.now()}.jpg`,
+                        type: file.mimeType || "image/jpeg",
+                    })),
+                ],
             }));
         } catch (err) {
             console.error("Error seleccionando archivo:", err);
@@ -91,63 +92,53 @@ function AnswersForm() {
     };
 
 
-    const handleSubmit = async () => {
-        try {
-            const storedUser = await AsyncStorage.getItem("user");
-            if (!storedUser) {
-                alert("No se encontró el usuario en la sesión");
-                return;
-            }
+const handleSubmit = async () => {
+    try {
+        const storedUser = await AsyncStorage.getItem("user");
+        if (!storedUser) {
+            alert("No se encontró el usuario en la sesión");
+            return;
+        }
 
-            const user = JSON.parse(storedUser);
-            const userId = user.id;
+        const user = JSON.parse(storedUser);
+        const userId = user.id;
 
-            const formData = new FormData();
-            formData.append("action", "saveAnswers");
-            formData.append("equipment_id", equipmentId);
-            formData.append("user_id", userId);
+        const formData = new FormData();
+        formData.append("action", "saveAnswers");
+        formData.append("equipment_id", equipmentId);
+        formData.append("user_id", userId);
 
-            for (const [fieldId, value] of Object.entries(answers)) {
-                formData.append(`answer_${fieldId}`, value ?? "");
-            }
+        for (const [fieldId, value] of Object.entries(answers)) {
+            formData.append(`answer_${fieldId}`, value ?? "");
+        }
 
-            for (const [fieldId, file] of Object.entries(files)) {
-                formData.append(`file_${fieldId}`, {
+        for (const [fieldId, fileList] of Object.entries(files)) {
+            fileList.forEach((file, index) => {
+                formData.append(`file_${fieldId}_${index}`, {
                     uri: file.uri,
                     name: file.name,
                     type: file.type,
                 });
-            }
-
-            const response = await fetch(
-                `${API_URL}/equipmentsController.php`,
-                { method: "POST", body: formData }
-            );
-
-            const data = await response.json();
-
-            if (data.success) {
-                Toast.show({
-                    type: "success",
-                    text1: "Éxito",
-                    text2: "Respuestas guardadas con éxito",
-                });
-            } else {
-                Toast.show({
-                    type: "error",
-                    text1: "Error",
-                    text2: data.error || "No se pudo guardar",
-                });
-            }
-        } catch (error) {
-            console.error("Error en handleSubmit:", error);
-            Toast.show({
-                type: "error",
-                text1: "Error de conexión",
-                text2: "No se pudo conectar con el servidor",
             });
         }
-    };
+
+        const response = await fetch(`${API_URL}/equipmentsController.php`, {
+            method: "POST",
+            body: formData,
+        });
+
+        // 🔎 Mostrar el texto exacto que devuelve el servidor
+        const text = await response.text();
+        console.log("=== RESPUESTA DEL SERVIDOR (TEXTO CRUDO) ===");
+        console.log(text);
+        alert("Respuesta del servidor:\n\n" + text);
+
+    } catch (error) {
+        console.error("Error en handleSubmit:", error);
+        alert("Error en handleSubmit: " + error.message);
+    }
+};
+
 
 
 
@@ -172,7 +163,7 @@ function AnswersForm() {
                             placeholder={field.description || field.name}
                             value={answers[field.field_equip_id] || ""}
                             onChangeText={(val) => handleChange(field.field_equip_id, val)}
-                            placeholderTextColor="#808080" 
+                            placeholderTextColor="#808080"
                         />
                     )}
 
@@ -183,7 +174,7 @@ function AnswersForm() {
                             placeholder={field.description || field.name}
                             value={answers[field.field_equip_id] || ""}
                             onChangeText={(val) => handleChange(field.field_equip_id, val)}
-                            placeholderTextColor="#808080" 
+                            placeholderTextColor="#808080"
                         />
                     )}
 
@@ -201,17 +192,39 @@ function AnswersForm() {
                             </TouchableOpacity>
 
                             {/* Previsualización */}
-                            {(files[field.field_equip_id] || answers[field.field_equip_id]) && (
-                                <Image
-                                    source={{
-                                        uri: files[field.field_equip_id]?.uri
-                                            ? files[field.field_equip_id].uri
-                                            : `${API_URL}/upload/equip/${answers[field.field_equip_id]}`,
-                                    }}
-                                    style={{ width: 120, height: 120, borderRadius: 8, marginTop: 8 }}
-                                    resizeMode="cover"
-                                />
-                            )}
+                            <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8 }}>
+                                {(files[field.field_equip_id] || []).map((file, index) => (
+                                    <Image
+                                        key={index}
+                                        source={{ uri: file.uri }}
+                                        style={{
+                                            width: 100,
+                                            height: 100,
+                                            borderRadius: 8,
+                                            marginRight: 8,
+                                            marginBottom: 8,
+                                        }}
+                                        resizeMode="cover"
+                                    />
+                                ))}
+
+                                {/* Si ya había imágenes guardadas en el servidor */}
+                                {Array.isArray(answers[field.field_equip_id]) &&
+                                    answers[field.field_equip_id].map((img, index) => (
+                                        <Image
+                                            key={`srv_${index}`}
+                                            source={{ uri: `${API_URL}/upload/equip/${img}` }}
+                                            style={{
+                                                width: 100,
+                                                height: 100,
+                                                borderRadius: 8,
+                                                marginRight: 8,
+                                                marginBottom: 8,
+                                            }}
+                                            resizeMode="cover"
+                                        />
+                                    ))}
+                            </View>
                         </View>
                     )}
 
@@ -230,8 +243,10 @@ function AnswersForm() {
                         <Picker
                             selectedValue={answers[field.field_equip_id] || ""}
                             onValueChange={(val) => handleChange(field.field_equip_id, val)}
+                            style={{ color: "black", backgroundColor: "#f0f0f0" }}
+                            itemStyle={{ color: "blue", fontSize: 16 }} // solo iOS
                         >
-                            <Picker.Item label="Seleccione una opción..." value="" />
+                            <Picker.Item label="Seleccione una opción..." value="" color="gray" />
                             {field.options && field.options.map((opt) => (
                                 <Picker.Item
                                     key={opt.option_id}
