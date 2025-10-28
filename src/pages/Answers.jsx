@@ -240,21 +240,25 @@ const handleSubmit = async () => {
                     )}
 
                     {field.fields_type === "select" && (
-                        <Picker
-                            selectedValue={answers[field.field_equip_id] || ""}
-                            onValueChange={(val) => handleChange(field.field_equip_id, val)}
-                            style={{ color: "black", backgroundColor: "#f0f0f0" }}
-                            itemStyle={{ color: "blue", fontSize: 16 }} // solo iOS
-                        >
-                            <Picker.Item label="Seleccione una opción..." value="" color="gray" />
-                            {field.options && field.options.map((opt) => (
-                                <Picker.Item
-                                    key={opt.option_id}
-                                    label={opt.label}
-                                    value={opt.value}
-                                />
-                            ))}
-                        </Picker>
+                        <View style={styles.pickerContainer}>
+                            <Picker
+                                selectedValue={answers[field.field_equip_id] || ""}
+                                onValueChange={(val) => handleChange(field.field_equip_id, val)}
+                                style={styles.pickerCustom}
+                                itemStyle={{ color: "#003366", fontSize: 16, fontWeight: "500" }} // iOS
+                                dropdownIconColor="#003366"
+                            >
+                                <Picker.Item label="Seleccione una opción..." value="" color="#888" />
+                                {field.options && field.options.map((opt) => (
+                                    <Picker.Item
+                                        key={opt.option_id}
+                                        label={opt.label}
+                                        value={opt.value}
+                                        color="#222" // letras negras
+                                    />
+                                ))}
+                            </Picker>
+                        </View>
                     )}
                 </React.Fragment>
             ))}
@@ -287,6 +291,29 @@ const handleSubmit = async () => {
 
 function AnswersHeader() {
     const navigation = useNavigation();
+    const route = useRoute();
+    const { categoryId, equipmentId, typeEquipId } = route.params;
+
+    // Estado para el nombre de la categoría
+    const [categoryName, setCategoryName] = useState("");
+    useEffect(() => {
+        // Traer el nombre de la categoría usando categoryId
+        const fetchCategoryName = async () => {
+            try {
+                const response = await fetch(
+                    `${API_URL}/equipmentsController.php?action=getQuestionsCategory&equipment_id=${equipmentId}`
+                );
+                const data = await response.json();
+                if (Array.isArray(data)) {
+                    const cat = data.find(c => c.field_category_id == categoryId);
+                    setCategoryName(cat ? cat.name : "");
+                }
+            } catch (e) {
+                setCategoryName("");
+            }
+        };
+        fetchCategoryName();
+    }, [categoryId, equipmentId]);
 
     return (
         <SafeAreaView style={styles.header}>
@@ -297,9 +324,11 @@ function AnswersHeader() {
                 <Ionicons name="arrow-back" size={26} color="#fff" />
             </TouchableOpacity>
             <View style={styles.headerTextBox}>
-                <Text style={styles.headerTitle}>Formulario:</Text>
-                <Text style={styles.headerSubtitle}>
-                    Preguntas
+                <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+                    Formulario: {categoryName || "Cargando..."}
+                </Text>
+                <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
+                    Equipo:
                 </Text>
             </View>
         </SafeAreaView>
@@ -328,10 +357,11 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     header: {
-        flexDirection: "row",
+    flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 18,
-        paddingBottom: 10,
+        paddingBottom: 16,
+        paddingTop: 16,
         backgroundColor: "#003366",
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
@@ -351,14 +381,14 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         color: "#fff",
-        fontSize: 22,
+        fontSize: 18,
         fontWeight: "bold",
         marginBottom: 2,
     },
     headerSubtitle: {
         color: "#e0e6ed",
-        fontSize: 15,
-        fontWeight: "500",
+        fontSize: 14,
+        fontWeight: "600",
     },
     label: {
         fontSize: 16,
@@ -377,13 +407,22 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         color: "#003366",
     },
-    picker: {
+    pickerContainer: {
         borderWidth: 2,
         borderColor: "#003366",
         borderRadius: 10,
         marginBottom: 12,
         backgroundColor: "#fff",
-        color: "#003366",
+        overflow: "hidden",
+    },
+    pickerCustom: {
+        color: "#222", // letras negras
+        fontWeight: "500",
+        fontSize: 16,
+        backgroundColor: "#fff",
+        minHeight: 48,
+        borderRadius: 10,
+        paddingHorizontal: 8,
     },
     fileButton: {
         marginVertical: 10,

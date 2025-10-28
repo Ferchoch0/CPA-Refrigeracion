@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import Toast from "react-native-toast-message";
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
@@ -30,6 +31,12 @@ export default function LoginScreen({ navigation }) {
 
       if (result.success) {
         await AsyncStorage.setItem('user', JSON.stringify(result.user));
+        Toast.show({
+          type: "success",
+          text1: "¡Logueado correctamente!",
+          text2: `Bienvenido, ${result.user.name || "usuario"}`,
+          position: "bottom"
+        });
         navigation.navigate("Main", { user: result.user });
       } else {
         Alert.alert("Error", result.error || "Credenciales inválidas");
