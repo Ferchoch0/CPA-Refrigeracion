@@ -32,6 +32,7 @@ export default function QRScanner() {
         typeEquipId: equipo.typeEquipId,
         code: equipo.code,
         name: equipo.name,
+        companyName: equipo.companyName
       });
     } catch (error) {
       alert("QR inválido");

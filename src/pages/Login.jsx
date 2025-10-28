@@ -39,10 +39,20 @@ export default function LoginScreen({ navigation }) {
         });
         navigation.navigate("Main", { user: result.user });
       } else {
-        Alert.alert("Error", result.error || "Credenciales inválidas");
+        Toast.show({
+          type: "error",
+          text1: "Error de autenticación",
+          text2: "Email o contraseña incorrectos",
+          position: "bottom"
+        });
       }
     } catch (error) {
-      Alert.alert("Error", "No se pudo conectar con el servidor");
+      Toast.show({
+        type: "error",
+        text1: "Error de red",
+        text2: "No se pudo conectar al servidor",
+        position: "bottom"
+      });
     }
   };
 

@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
 
 const API_URL = Constants.expoConfig.extra.API_URL;
 
-const TimelineItem = ({ item, isSelected, onPress, equipmentId, typeEquipId }) => {
+const TimelineItem = ({ item, isSelected, onPress, equipmentId, typeEquipId, equipmentCode }) => {
   const navigation = useNavigation();
 
   // Calcula si está completo
@@ -24,6 +24,7 @@ const TimelineItem = ({ item, isSelected, onPress, equipmentId, typeEquipId }) =
           categoryId: item.field_category_id,
           equipmentId,
           typeEquipId,
+          equipmentCode,
         })
       }
       activeOpacity={0.8}
@@ -93,7 +94,7 @@ const TimelineItem = ({ item, isSelected, onPress, equipmentId, typeEquipId }) =
   );
 };
 
-export function TimelineScreen({ equipmentId, typeEquipId }) {
+export function TimelineScreen({ equipmentId, typeEquipId, equipmentCode }) {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -147,6 +148,7 @@ export function TimelineScreen({ equipmentId, typeEquipId }) {
             onPress={setSelectedTaskId}
             equipmentId={equipmentId}
             typeEquipId={typeEquipId}
+            equipmentCode={equipmentCode}
           />
         )}
       />

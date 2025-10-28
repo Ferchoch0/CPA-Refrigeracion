@@ -7,17 +7,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function GeneralScreen() {
     const route = useRoute();
+
     const navigation = useNavigation();
     // Añadido clientName y se mantiene el resto de params
-    const { equipo, tipoEquipo, unidad, code, equipmentId, typeEquipId, placement, clientName } = route.params || {};
+    const { equipo, tipoEquipo, unidad, code, equipmentId, typeEquipId, placement, clientName, companyName} = route.params || {};
 
     // Nuevo: determinar el nombre de cliente buscando en varios lugares de los params/objeto
     const clientDisplayName =
         clientName ||
+        companyName ||
         route.params?.clientName ||
         route.params?.client?.company_name ||
         equipo?.client_name ||
+        equipo?.nombreCliente ||
         "Cliente desconocido";
+
+    console.log('Route Params:', {
+        clientName,
+        companyName
+    });
 
     const idFinal = equipo?.equipment_id || equipmentId;
 
@@ -52,6 +60,7 @@ export default function GeneralScreen() {
                 <TimelineScreen
                     equipmentId={idFinal}
                     typeEquipId={typeEquipId}
+                    equipmentCode={equipo?.code || code}
                 />
             </View>
         </View>

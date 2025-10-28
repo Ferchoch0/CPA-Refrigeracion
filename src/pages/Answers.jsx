@@ -23,7 +23,7 @@ function AnswersForm() {
     const [files, setFiles] = useState({});
     const [loading, setLoading] = useState(true);
     const route = useRoute();
-    const { categoryId, equipmentId, typeEquipId } = route.params;
+    const { categoryId, equipmentId, typeEquipId} = route.params;
     const [showPicker, setShowPicker] = useState(null);
 
     useEffect(() => {
@@ -292,7 +292,7 @@ const handleSubmit = async () => {
 function AnswersHeader() {
     const navigation = useNavigation();
     const route = useRoute();
-    const { categoryId, equipmentId, typeEquipId } = route.params;
+    const { categoryId, equipmentId, typeEquipId, equipmentCode } = route.params;
 
     // Estado para el nombre de la categoría
     const [categoryName, setCategoryName] = useState("");
@@ -328,7 +328,7 @@ function AnswersHeader() {
                     Formulario: {categoryName || "Cargando..."}
                 </Text>
                 <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
-                    Equipo:
+                    Equipo: {equipmentCode || "Sin código"}
                 </Text>
             </View>
         </SafeAreaView>
