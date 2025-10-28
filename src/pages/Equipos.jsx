@@ -22,7 +22,7 @@ import Toast from "react-native-toast-message";
 const API_URL = Constants.expoConfig.extra.API_URL;
 
 export default function EquiposScreen({ route, navigation: propNavigation }) {
-  const { clientId } = route.params;
+  const { clientId, clientName } = route.params; // Añadir clientName a los parámetros
   const navigation = useNavigation();
   const [search, setSearch] = useState("");
   const [equipos, setEquipos] = useState([]);
@@ -250,31 +250,27 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <SafeAreaView style={styles.header}>
+      <View style={styles.header}>
         <View style={styles.headerRow}>
-          {/* Botón atrás */}
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>Cliente registrado,</Text>
+          <View style={{flex: 1}}>
+            <Text style={styles.headerTitle}>Equipos</Text>
             <Text style={styles.headerSubtitle}>
-              ahora gestiona sus equipos
+              Cliente: {route.params.clientName}
             </Text>
           </View>
-          <View style={styles.logoBox}>
-            <Image
-              source={require("../../assets/logo2.png")}
-              style={styles.logoImg}
-              resizeMode="contain"
-            />
-          </View>
+          <Image
+            source={require("../../assets/logo2.png")}
+            style={styles.logoImg}
+          />
         </View>
-      </SafeAreaView>
+      </View>
+      
       {/* Cuerpo */}
       <View style={styles.bodyContainer}>
         {/* Barra de totales con filtro por estado */}

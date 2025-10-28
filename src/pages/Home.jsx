@@ -75,7 +75,10 @@ const SearchBar = ({ data, onFilter }) => {
 const ClientItem = ({ item, navigation }) => (
     <TouchableOpacity
         style={styles.clientItem}
-        onPress={() => navigation.navigate("Equipos", { clientId: item.client_id })}
+        onPress={() => navigation.navigate("Equipos", { 
+            clientId: item.client_id,
+            clientName: item.company_name 
+        })}
     >
         <View style={styles.iconContainer}>
             <Ionicons name="business-outline" size={28} color="#003366" />
