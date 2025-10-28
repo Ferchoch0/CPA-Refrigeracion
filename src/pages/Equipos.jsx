@@ -217,6 +217,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
             typeEquipId: unica.type_equip_id,
             code: unica.code,
             name: unica.name,
+            clientName: clientName, // <-- agregado
           });
         }
       }}
@@ -465,6 +466,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
                       code: unidad.code,
                       name: unidad.name,
                       placement: unidad.placement ?? null,
+                      clientName: clientName, // <-- agregado
                     });
                   }}
                 >

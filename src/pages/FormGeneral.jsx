@@ -8,7 +8,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function GeneralScreen() {
     const route = useRoute();
     const navigation = useNavigation();
-    const { equipo, tipoEquipo, unidad, code, equipmentId, typeEquipId, placement } = route.params || {};
+    // Añadido clientName y se mantiene el resto de params
+    const { equipo, tipoEquipo, unidad, code, equipmentId, typeEquipId, placement, clientName } = route.params || {};
+
+    // Nuevo: determinar el nombre de cliente buscando en varios lugares de los params/objeto
+    const clientDisplayName =
+        clientName ||
+        route.params?.clientName ||
+        route.params?.client?.company_name ||
+        equipo?.client_name ||
+        "Cliente desconocido";
 
     const idFinal = equipo?.equipment_id || equipmentId;
 
@@ -21,13 +30,22 @@ export default function GeneralScreen() {
                 >
                     <Ionicons name="arrow-back" size={26} color="#fff" />
                 </TouchableOpacity>
+
+                {/* Mostrar exactamente 2 líneas:
+                    1) Equipo: <codigo> (unidad)  -- si existe la unidad se muestra entre paréntesis
+                    2) Cliente: <nombre del cliente> -- siempre visible
+                */}
                 <View style={styles.headerTextBox}>
-                    <Text style={styles.headerTitle}>Equipo:</Text>
-                    <Text style={styles.headerSubtitle}>
-                        {equipo?.code || code} {equipo?.placement || placement ? `(${equipo?.placement || placement})` : ""}
+                    <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+                        Equipo: {equipo?.code || code}
+                        {(equipo?.placement || placement) ? ` (${equipo?.placement || placement})` : ""}
+                    </Text>
+                    <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
+                        Cliente: {clientDisplayName}
                     </Text>
                 </View>
             </SafeAreaView>
+
             <View style={styles.divider} />
             <View style={styles.content}>
 
@@ -70,14 +88,14 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         color: "#fff",
-        fontSize: 22,
+        fontSize: 18,
         fontWeight: "bold",
         marginBottom: 2,
     },
     headerSubtitle: {
         color: "#e0e6ed",
-        fontSize: 15,
-        fontWeight: "500",
+        fontSize: 14,
+        fontWeight: "600",
     },
     divider: {
         height: 1,
