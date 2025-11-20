@@ -23,7 +23,7 @@ function AnswersForm() {
     const [files, setFiles] = useState({});
     const [loading, setLoading] = useState(true);
     const route = useRoute();
-    const { categoryId, equipmentId, typeEquipId} = route.params;
+    const { categoryId, equipmentId, typeEquipId } = route.params;
     const [showPicker, setShowPicker] = useState(null);
 
     useEffect(() => {
@@ -92,52 +92,52 @@ function AnswersForm() {
     };
 
 
-const handleSubmit = async () => {
-    try {
-        const storedUser = await AsyncStorage.getItem("user");
-        if (!storedUser) {
-            alert("No se encontró el usuario en la sesión");
-            return;
-        }
+    const handleSubmit = async () => {
+        try {
+            const storedUser = await AsyncStorage.getItem("user");
+            if (!storedUser) {
+                alert("No se encontró el usuario en la sesión");
+                return;
+            }
 
-        const user = JSON.parse(storedUser);
-        const userId = user.id;
+            const user = JSON.parse(storedUser);
+            const userId = user.id;
 
-        const formData = new FormData();
-        formData.append("action", "saveAnswers");
-        formData.append("equipment_id", equipmentId);
-        formData.append("user_id", userId);
+            const formData = new FormData();
+            formData.append("action", "saveAnswers");
+            formData.append("equipment_id", equipmentId);
+            formData.append("user_id", userId);
 
-        for (const [fieldId, value] of Object.entries(answers)) {
-            formData.append(`answer_${fieldId}`, value ?? "");
-        }
+            for (const [fieldId, value] of Object.entries(answers)) {
+                formData.append(`answer_${fieldId}`, value ?? "");
+            }
 
-        for (const [fieldId, fileList] of Object.entries(files)) {
-            fileList.forEach((file, index) => {
-                formData.append(`file_${fieldId}_${index}`, {
-                    uri: file.uri,
-                    name: file.name,
-                    type: file.type,
+            for (const [fieldId, fileList] of Object.entries(files)) {
+                fileList.forEach((file, index) => {
+                    formData.append(`file_${fieldId}_${index}`, {
+                        uri: file.uri,
+                        name: file.name,
+                        type: file.type,
+                    });
                 });
+            }
+
+            const response = await fetch(`${API_URL}/equipmentsController.php`, {
+                method: "POST",
+                body: formData,
             });
+
+            // 🔎 Mostrar el texto exacto que devuelve el servidor
+            const text = await response.text();
+            console.log("=== RESPUESTA DEL SERVIDOR (TEXTO CRUDO) ===");
+            console.log(text);
+            alert("Respuesta del servidor:\n\n" + text);
+
+        } catch (error) {
+            console.error("Error en handleSubmit:", error);
+            alert("Error en handleSubmit: " + error.message);
         }
-
-        const response = await fetch(`${API_URL}/equipmentsController.php`, {
-            method: "POST",
-            body: formData,
-        });
-
-        // 🔎 Mostrar el texto exacto que devuelve el servidor
-        const text = await response.text();
-        console.log("=== RESPUESTA DEL SERVIDOR (TEXTO CRUDO) ===");
-        console.log(text);
-        alert("Respuesta del servidor:\n\n" + text);
-
-    } catch (error) {
-        console.error("Error en handleSubmit:", error);
-        alert("Error en handleSubmit: " + error.message);
-    }
-};
+    };
 
 
 
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     header: {
-    flexDirection: "row",
+        flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 18,
         paddingBottom: 16,
@@ -412,11 +412,11 @@ const styles = StyleSheet.create({
         borderColor: "#003366",
         borderRadius: 10,
         marginBottom: 12,
-        backgroundColor: "#fff",
+        backgroundColor: "#fff", // Asegurar fondo blanco
         overflow: "hidden",
     },
     pickerCustom: {
-        color: "#222", // letras negras
+        color: "#222",
         fontWeight: "500",
         fontSize: 16,
         backgroundColor: "#fff",

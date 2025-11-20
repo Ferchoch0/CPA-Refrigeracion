@@ -94,6 +94,8 @@ export default function LoginScreen({ navigation }) {
               value={pass}
               onChangeText={setPass}
               placeholderTextColor="#808080"
+              textContentType="password"
+              autoCapitalize="none"
             />
 
             <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
@@ -142,7 +144,9 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: "#ddd"
+    borderColor: "#ddd",
+    color: "#003366", // Color del texto visible
+    fontSize: 16, // Tamaño explícito
   },
   loginBtn: {
     backgroundColor: "#003366",

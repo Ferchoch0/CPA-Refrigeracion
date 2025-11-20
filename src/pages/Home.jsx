@@ -25,22 +25,27 @@ const Navbar = () => {
 };
 
 const Header = ({ user }) => (
-  <View style={styles.header}>
-    <View>
-      <Text style={styles.greeting}>Hola, {user?.name || "Usuario"}</Text>
-      <Text style={styles.welcome}>Bienvenido de nuevo</Text>
+    <View style={styles.header}>
+        <View style={{ flex: 1, marginRight: 12 }}>
+            <Text
+                style={styles.greeting}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+            >
+                Hola, {user?.name || "Usuario"}
+            </Text>
+            <Text style={styles.welcome}>Bienvenido de nuevo</Text>
+        </View>
+        <Image
+            source={
+                user?.photo
+                    ? { uri: `${API_URL}/upload/profile/${user.photo}` }
+                    : require("../../assets/image-profile.jpg")
+            }
+            style={styles.avatar}
+        />
     </View>
-    <Image
-      source={
-        user?.photo
-          ? { uri: `${API_URL}/upload/profile/${user.photo}` }
-          : require("../../assets/image-profile.jpg")
-      }
-      style={styles.avatar}
-    />
-  </View>
 );
-
 
 const SearchBar = ({ data, onFilter }) => {
     const [search, setSearch] = useState("");
@@ -66,7 +71,7 @@ const SearchBar = ({ data, onFilter }) => {
                 placeholder="Buscar cliente..."
                 value={search}
                 onChangeText={handleSearch}
-                placeholderTextColor="#808080" 
+                placeholderTextColor="#808080"
             />
         </View>
     );
@@ -75,9 +80,9 @@ const SearchBar = ({ data, onFilter }) => {
 const ClientItem = ({ item, navigation }) => (
     <TouchableOpacity
         style={styles.clientItem}
-        onPress={() => navigation.navigate("Equipos", { 
+        onPress={() => navigation.navigate("Equipos", {
             clientId: item.client_id,
-            clientName: item.company_name 
+            clientName: item.company_name
         })}
     >
         <View style={styles.iconContainer}>
@@ -193,7 +198,7 @@ const styles = StyleSheet.create({
     },
 
     navTitle: {
-        position: "absolute", 
+        position: "absolute",
         left: 0,
         right: 0,
         textAlign: "center",
@@ -220,7 +225,13 @@ const styles = StyleSheet.create({
 
     mainContent: { flex: 1, padding: 10, paddingHorizontal: 16 },
 
-    greeting: { color: "#eee", fontSize: 24, fontWeight: "bold" },
+    greeting: {
+        color: "#eee",
+        fontSize: 24,
+        fontWeight: "bold",
+        flexWrap: "wrap",
+        flexShrink: 1
+    },
     welcome: { color: "#b3b8d3ff", fontSize: 14 },
     avatar: { width: 55, height: 55, borderRadius: 30, backgroundColor: "#ccc" },
 
