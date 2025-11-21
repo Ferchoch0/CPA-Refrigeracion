@@ -90,6 +90,9 @@ const ClientItem = ({ item, navigation }) => (
         </View>
         <View>
             <Text style={styles.clientName}>{item.company_name}</Text>
+            <Text style={styles.clientLocation} numberOfLines={1} ellipsizeMode="tail">
+                {item.location || item.address || ""}
+            </Text>
             <Text style={styles.clientStatus}>{item.contact_person}</Text>
         </View>
     </TouchableOpacity>
@@ -285,7 +288,14 @@ const styles = StyleSheet.create({
         padding: 12,
         marginBottom: 8,
     },
-    clientName: { fontSize: 16, fontWeight: "bold", color: "#1C3F6E" },
+    clientName: { fontSize: 16, fontWeight: "bold", color: "#1e5db1ff" },
+    clientLocation: {
+        fontSize: 13,
+        fontWeight: "bold",
+        color: "#4e4e4eff",
+        marginTop: 1,
+        marginBottom: 3,
+    },
     clientStatus: { fontSize: 12, color: "#666" },
     iconContainer: {
         width: 35,

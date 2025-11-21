@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
     ScrollView, Text, StyleSheet, ActivityIndicator,
-    TextInput, TouchableOpacity, View, Image
+    TextInput, TouchableOpacity, View, Image, Modal
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -22,9 +22,12 @@ function AnswersForm() {
     const [answers, setAnswers] = useState({});
     const [files, setFiles] = useState({});
     const [loading, setLoading] = useState(true);
+    const [previewUri, setPreviewUri] = useState(null);
+    const [previewVisible, setPreviewVisible] = useState(false);
     const route = useRoute();
     const { categoryId, equipmentId, typeEquipId } = route.params;
     const [showPicker, setShowPicker] = useState(null);
+    const [selectModalId, setSelectModalId] = useState(null);
 
     useEffect(() => {
         const fetchFields = async () => {
@@ -194,26 +197,15 @@ function AnswersForm() {
                             {/* Previsualización */}
                             <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8 }}>
                                 {(files[field.field_equip_id] || []).map((file, index) => (
-                                    <Image
+                                    <TouchableOpacity
                                         key={index}
-                                        source={{ uri: file.uri }}
-                                        style={{
-                                            width: 100,
-                                            height: 100,
-                                            borderRadius: 8,
-                                            marginRight: 8,
-                                            marginBottom: 8,
+                                        onPress={() => {
+                                            setPreviewUri(file.uri);
+                                            setPreviewVisible(true);
                                         }}
-                                        resizeMode="cover"
-                                    />
-                                ))}
-
-                                {/* Si ya había imágenes guardadas en el servidor */}
-                                {Array.isArray(answers[field.field_equip_id]) &&
-                                    answers[field.field_equip_id].map((img, index) => (
+                                    >
                                         <Image
-                                            key={`srv_${index}`}
-                                            source={{ uri: `${API_URL}/upload/equip/${img}` }}
+                                            source={{ uri: file.uri }}
                                             style={{
                                                 width: 100,
                                                 height: 100,
@@ -223,7 +215,35 @@ function AnswersForm() {
                                             }}
                                             resizeMode="cover"
                                         />
-                                    ))}
+                                    </TouchableOpacity>
+                                ))}
+
+                                {/* Si ya había imágenes guardadas en el servidor */}
+                                {Array.isArray(answers[field.field_equip_id]) &&
+                                    answers[field.field_equip_id].map((img, index) => {
+                                        const uri = `${API_URL}/upload/equip/${img}`;
+                                        return (
+                                            <TouchableOpacity
+                                                key={`srv_${index}`}
+                                                onPress={() => {
+                                                    setPreviewUri(uri);
+                                                    setPreviewVisible(true);
+                                                }}
+                                            >
+                                                <Image
+                                                    source={{ uri }}
+                                                    style={{
+                                                        width: 100,
+                                                        height: 100,
+                                                        borderRadius: 8,
+                                                        marginRight: 8,
+                                                        marginBottom: 8,
+                                                    }}
+                                                    resizeMode="cover"
+                                                />
+                                            </TouchableOpacity>
+                                        );
+                                    })}
                             </View>
                         </View>
                     )}
@@ -240,25 +260,25 @@ function AnswersForm() {
                     )}
 
                     {field.fields_type === "select" && (
-                        <View style={styles.pickerContainer}>
-                            <Picker
-                                selectedValue={answers[field.field_equip_id] || ""}
-                                onValueChange={(val) => handleChange(field.field_equip_id, val)}
-                                style={styles.pickerCustom}
-                                itemStyle={{ color: "#003366", fontSize: 16, fontWeight: "500" }} // iOS
-                                dropdownIconColor="#003366"
+                        <>
+                            <TouchableOpacity
+                                style={styles.pickerContainer}
+                                onPress={() => setSelectModalId(field.field_equip_id)}
                             >
-                                <Picker.Item label="Seleccione una opción..." value="" color="#888" />
-                                {field.options && field.options.map((opt) => (
-                                    <Picker.Item
-                                        key={opt.option_id}
-                                        label={opt.label}
-                                        value={opt.value}
-                                        color="#222" // letras negras
-                                    />
-                                ))}
-                            </Picker>
-                        </View>
+                                <Text style={{
+                                    padding: 12,
+                                    color: answers[field.field_equip_id] ? "#000" : "#888",
+                                    fontSize: 16,
+                                }}>
+                                    { (() => {
+                                        const val = answers[field.field_equip_id];
+                                        if (!val) return "Seleccione una opción...";
+                                        const opt = field.options?.find(o => o.value === val);
+                                        return opt ? opt.label : val;
+                                    })() }
+                                </Text>
+                            </TouchableOpacity>
+                        </>
                     )}
                 </React.Fragment>
             ))}
@@ -285,6 +305,67 @@ function AnswersForm() {
             <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
                 <Text style={styles.submitButtonText}>Guardar respuestas</Text>
             </TouchableOpacity>
+
+            {/* Modal de vista previa */}
+            <Modal
+                visible={previewVisible}
+                transparent={true}
+                onRequestClose={() => setPreviewVisible(false)}
+            >
+                <View style={styles.previewOverlay}>
+                    <TouchableOpacity style={styles.previewClose} onPress={() => setPreviewVisible(false)}>
+                        <Text style={styles.previewCloseText}>Cerrar</Text>
+                    </TouchableOpacity>
+                    <Image
+                        source={{ uri: previewUri }}
+                        style={styles.previewImage}
+                        resizeMode="contain"
+                    />
+                </View>
+            </Modal>
+
+            {/* Modal personalizado para selects (fondo blanco, texto negro) */}
+            {selectModalId && (
+                <Modal
+                    visible={true}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setSelectModalId(null)}
+                >
+                    <View style={styles.selectModalOverlay}>
+                        <View style={styles.selectModalContent}>
+                            <ScrollView>
+                                {fields.find(f => f.field_equip_id === selectModalId)?.options?.map((opt) => {
+                                    const isSelected = answers[selectModalId] === opt.value;
+                                    return (
+                                        <TouchableOpacity
+                                            key={opt.option_id}
+                                            style={[styles.selectOption, isSelected && styles.selectOptionSelected]}
+                                            onPress={() => {
+                                                handleChange(selectModalId, opt.value);
+                                                setSelectModalId(null);
+                                            }}
+                                        >
+                                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                                                <Text style={[styles.selectOptionText, isSelected && styles.selectOptionTextSelected]}>
+                                                    {opt.label}
+                                                </Text>
+                                                {isSelected && <Ionicons name="checkmark" size={20} color="#003366" />}
+                                            </View>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </ScrollView>
+                            <TouchableOpacity
+                                style={styles.selectModalClose}
+                                onPress={() => setSelectModalId(null)}
+                            >
+                                <Text style={styles.selectModalCloseText}>Cerrar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+            )}
         </ScrollView>
     );
 }
@@ -360,7 +441,6 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 18,
-        paddingBottom: 16,
         paddingTop: 16,
         backgroundColor: "#003366",
         borderBottomLeftRadius: 24,
@@ -447,5 +527,78 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "700",
         fontSize: 18,
+    },
+    previewOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.9)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 16,
+    },
+    previewImage: {
+        width: "100%",
+        height: "80%",
+        borderRadius: 8,
+    },
+    previewClose: {
+        position: "absolute",
+        top: 40,
+        right: 20,
+        zIndex: 10,
+        backgroundColor: "#fff",
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+    },
+    previewCloseText: {
+        color: "#003366",
+        fontWeight: "700",
+    },
+    selectModalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 16,
+    },
+    selectModalContent: {
+        width: "90%",
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 16,
+        elevation: 4,
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 8,
+    },
+    selectOption: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: "#eee",
+    },
+    selectOptionSelected: {
+        backgroundColor: "#e6f3ff",
+    },
+    selectOptionTextSelected: {
+        color: "#003366",
+        fontWeight: "700",
+    },
+    selectOptionText: {
+        fontSize: 16,
+        color: "#333",
+    },
+    selectModalClose: {
+        marginTop: 12,
+        backgroundColor: "#003366",
+        borderRadius: 10,
+        paddingVertical: 12,
+        alignItems: "center",
+    },
+    selectModalCloseText: {
+        color: "#fff",
+        fontWeight: "600",
+        fontSize: 16,
     },
 });

@@ -602,7 +602,9 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
 
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#003366" },
+  container: { flex: 1, backgroundColor: "#003366",
+    paddingTop: 28,
+   },
 
   header: {
     backgroundColor: "#003366",
