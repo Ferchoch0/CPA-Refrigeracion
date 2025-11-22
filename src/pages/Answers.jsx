@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     ScrollView, Text, StyleSheet, ActivityIndicator,
-    TextInput, TouchableOpacity, View, Image, Modal
+    TextInput, TouchableOpacity, View, Image, Modal, Animated, Easing
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
@@ -22,12 +23,26 @@ function AnswersForm() {
     const [answers, setAnswers] = useState({});
     const [files, setFiles] = useState({});
     const [loading, setLoading] = useState(true);
-    const [previewUri, setPreviewUri] = useState(null);
-    const [previewVisible, setPreviewVisible] = useState(false);
+    // preview: null | { uri, isNew: boolean, fieldId, index }
+    const [preview, setPreview] = useState(null);
     const route = useRoute();
     const { categoryId, equipmentId, typeEquipId } = route.params;
     const [showPicker, setShowPicker] = useState(null);
     const [selectModalId, setSelectModalId] = useState(null);
+
+    // selección múltiple por mantener presionado
+    const [selectionMode, setSelectionMode] = useState(false);
+    // estructura: { [fieldId]: Set(indices) }
+    const [selected, setSelected] = useState({});
+
+    // flag para evitar que onPress se ejecute justo después de onLongPress
+    const [justLongPressed, setJustLongPressed] = useState(false);
+    const justLongPressedTimer = useRef(null);
+
+    // animaciones FAB
+    const fabAnim = useRef(new Animated.Value(0)).current; // 0 oculto, 1 visible
+    const previewRemoveScale = useRef(new Animated.Value(1)).current;
+    const fabRemoveScale = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         const fetchFields = async () => {
@@ -56,7 +71,23 @@ function AnswersForm() {
         };
 
         fetchFields();
+
+        return () => {
+            if (justLongPressedTimer.current) {
+                clearTimeout(justLongPressedTimer.current);
+            }
+        };
     }, [categoryId, equipmentId, typeEquipId]);
+
+    // animar FAB al entrar/salir selectionMode
+    useEffect(() => {
+        Animated.timing(fabAnim, {
+            toValue: selectionMode ? 1 : 0,
+            duration: 260,
+            easing: Easing.out(Easing.poly(4)),
+            useNativeDriver: true,
+        }).start();
+    }, [selectionMode]);
 
     const handleChange = (id, value) => {
         setAnswers((prev) => ({
@@ -91,6 +122,43 @@ function AnswersForm() {
             }));
         } catch (err) {
             console.error("Error seleccionando archivo:", err);
+        }
+    };
+
+    const handleTakePhoto = async (fieldId) => {
+        try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== "granted") {
+                alert("Permiso de cámara denegado");
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 0.8,
+                allowsEditing: false,
+            });
+
+            if (result.cancelled) return;
+
+            const uri = result.uri || result.assets?.[0]?.uri;
+            if (!uri) return;
+
+            const photoObj = {
+                uri,
+                name: `camera_${equipmentId}_${fieldId}_${Date.now()}.jpg`,
+                type: "image/jpeg",
+            };
+
+            setFiles(prev => ({
+                ...prev,
+                [fieldId]: [
+                    ...(prev[fieldId] || []),
+                    photoObj,
+                ],
+            }));
+        } catch (err) {
+            console.error("Error al tomar foto:", err);
         }
     };
 
@@ -142,187 +210,378 @@ function AnswersForm() {
         }
     };
 
+    // animación pequeña antes de eliminar (preview)
+    const animatePreviewRemoveThen = async (cb) => {
+        await new Promise(res => {
+            Animated.sequence([
+                Animated.timing(previewRemoveScale, { toValue: 0.88, duration: 120, useNativeDriver: true }),
+                Animated.timing(previewRemoveScale, { toValue: 1, duration: 120, useNativeDriver: true }),
+            ]).start(() => res());
+        });
+        cb && cb();
+    };
 
+    const handleRemoveImage = (fieldId, index) => {
+        // animar botón, luego eliminar
+        animatePreviewRemoveThen(() => {
+            setFiles(prev => {
+                const arr = [...(prev[fieldId] || [])];
+                if (index >= 0 && index < arr.length) arr.splice(index, 1);
+                return { ...prev, [fieldId]: arr };
+            });
+            setPreview(null);
+        });
+    };
 
+    // selección: iniciar con long press
+    const handleLongPressThumb = (fieldId, index) => {
+        // indicar que hubo long press para bloquear el onPress que pueda venir después
+        setJustLongPressed(true);
+        if (justLongPressedTimer.current) clearTimeout(justLongPressedTimer.current);
+        justLongPressedTimer.current = setTimeout(() => setJustLongPressed(false), 350);
 
+        setSelectionMode(true);
+        setSelected(prev => {
+            const next = { ...prev };
+            if (!next[fieldId]) next[fieldId] = new Set();
+            next[fieldId].add(index);
+            return next;
+        });
+        setPreview(null);
+    };
+
+    const toggleSelectThumb = (fieldId, index) => {
+        setSelected(prev => {
+            const next = { ...prev };
+            if (!next[fieldId]) next[fieldId] = new Set();
+            if (next[fieldId].has(index)) {
+                next[fieldId].delete(index);
+                if (next[fieldId].size === 0) delete next[fieldId];
+            } else {
+                next[fieldId].add(index);
+            }
+            // si quedó vacío, salir del modo selección
+            const hasAny = Object.keys(next).length > 0;
+            setSelectionMode(hasAny);
+            return next;
+        });
+    };
+
+    const isThumbSelected = (fieldId, index) => {
+        return !!(selected[fieldId] && selected[fieldId].has(index));
+    };
+
+    // animación para FAB remove then bulk remove
+    const animateFabRemoveThen = async (cb) => {
+        await new Promise(res => {
+            Animated.sequence([
+                Animated.timing(fabRemoveScale, { toValue: 0.86, duration: 110, useNativeDriver: true }),
+                Animated.timing(fabRemoveScale, { toValue: 1, duration: 150, useNativeDriver: true }),
+            ]).start(() => res());
+        });
+        cb && cb();
+    };
+
+    // borrar todas las seleccionadas (bulk)
+    const handleBulkRemove = () => {
+        animateFabRemoveThen(() => {
+            setFiles(prev => {
+                const next = { ...prev };
+                Object.keys(selected).forEach(fieldId => {
+                    const toRemove = Array.from(selected[fieldId]).sort((a,b)=>b-a); // eliminar índices de mayor a menor
+                    const arr = [...(next[fieldId] || [])];
+                    toRemove.forEach(idx => {
+                        if (idx >=0 && idx < arr.length) arr.splice(idx,1);
+                    });
+                    next[fieldId] = arr;
+                });
+                return next;
+            });
+            setSelected({});
+            setSelectionMode(false);
+            setPreview(null);
+        });
+    };
+
+    const cancelSelectionMode = () => {
+        setSelected({});
+        setSelectionMode(false);
+    };
 
     if (loading) {
         return (
-            <ScrollView contentContainerStyle={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
                 <ActivityIndicator size="large" color="#003366" />
-            </ScrollView>
+            </View>
         );
     }
 
     return (
-        <ScrollView style={styles.container}>
-            {fields.map((field) => (
-                <React.Fragment key={field.field_equip_id}>
-                    <Text style={styles.label}>{field.name}</Text>
+        <View style={styles.formWrapper}>
+            <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 160 }}>
+                {fields.map((field) => {
+                    const newCount = (files[field.field_equip_id] || []).length;
+                    const fileButtonLabel = newCount > 0
+                        ? `Fotos nuevas (${newCount})`
+                        : "Seleccionar foto";
 
-                    {field.fields_type === "text" && (
-                        <TextInput
-                            style={styles.input}
-                            placeholder={field.description || field.name}
-                            value={answers[field.field_equip_id] || ""}
-                            onChangeText={(val) => handleChange(field.field_equip_id, val)}
-                            placeholderTextColor="#808080"
-                        />
-                    )}
-
-                    {field.fields_type === "number" && (
-                        <TextInput
-                            style={styles.input}
-                            keyboardType="numeric"
-                            placeholder={field.description || field.name}
-                            value={answers[field.field_equip_id] || ""}
-                            onChangeText={(val) => handleChange(field.field_equip_id, val)}
-                            placeholderTextColor="#808080"
-                        />
-                    )}
-
-                    {field.fields_type === "file" && (
-                        <View style={{ marginVertical: 10 }}>
-                            <TouchableOpacity
-                                style={styles.fileButton}
-                                onPress={() => handleFilePick(field.field_equip_id)}
-                            >
-                                <Text style={styles.fileButtonText}>
-                                    {files[field.field_equip_id]?.name
-                                        ? "Cambiar archivo"
-                                        : "Seleccionar archivo"}
-                                </Text>
-                            </TouchableOpacity>
-
-                            {/* Previsualización */}
-                            <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8 }}>
-                                {(files[field.field_equip_id] || []).map((file, index) => (
-                                    <TouchableOpacity
-                                        key={index}
-                                        onPress={() => {
-                                            setPreviewUri(file.uri);
-                                            setPreviewVisible(true);
-                                        }}
-                                    >
-                                        <Image
-                                            source={{ uri: file.uri }}
-                                            style={{
-                                                width: 100,
-                                                height: 100,
-                                                borderRadius: 8,
-                                                marginRight: 8,
-                                                marginBottom: 8,
-                                            }}
-                                            resizeMode="cover"
-                                        />
-                                    </TouchableOpacity>
-                                ))}
-
-                                {/* Si ya había imágenes guardadas en el servidor */}
-                                {Array.isArray(answers[field.field_equip_id]) &&
-                                    answers[field.field_equip_id].map((img, index) => {
-                                        const uri = `${API_URL}/upload/equip/${img}`;
-                                        return (
+                     return (
+                         <React.Fragment key={field.field_equip_id}>
+                             <Text style={styles.label}>{field.name}</Text>
+ 
+                             {field.fields_type === "text" && (
+                                 <TextInput
+                                     style={styles.input}
+                                     placeholder={field.description || field.name}
+                                     value={answers[field.field_equip_id] || ""}
+                                     onChangeText={(val) => handleChange(field.field_equip_id, val)}
+                                     placeholderTextColor="#808080"
+                                 />
+                             )}
+ 
+                             {field.fields_type === "number" && (
+                                 <TextInput
+                                     style={styles.input}
+                                     keyboardType="numeric"
+                                     placeholder={field.description || field.name}
+                                     value={answers[field.field_equip_id] || ""}
+                                     onChangeText={(val) => handleChange(field.field_equip_id, val)}
+                                     placeholderTextColor="#808080"
+                                 />
+                             )}
+ 
+                             {field.fields_type === "file" && (
+                                 <View style={{ marginVertical: 10 }}>
+                                     <View style={styles.fileRow}>
+                                         <TouchableOpacity
+                                             style={styles.fileButton}
+                                             onPress={() => handleFilePick(field.field_equip_id)}
+                                         >
+                                            <Ionicons name="images" size={16} color="#fff" style={{ marginRight: 8 }} />
+                                             <Text style={styles.fileButtonText}>
+                                                 {fileButtonLabel}
+                                             </Text>
+                                         </TouchableOpacity>
+ 
+                                         <TouchableOpacity
+                                             style={styles.cameraButton}
+                                             onPress={() => handleTakePhoto(field.field_equip_id)}
+                                             activeOpacity={0.8}
+                                         >
+                                             <Ionicons name="camera" size={18} color="#003366" style={{ marginRight: 8 }} />
+                                             <Text style={styles.cameraButtonText}>Tomar foto</Text>
+                                         </TouchableOpacity>
+                                     </View>
+ 
+                                    {/* Previsualización */}
+                                    <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8 }}>
+                                        {(files[field.field_equip_id] || []).map((file, index) => (
                                             <TouchableOpacity
-                                                key={`srv_${index}`}
+                                                key={index}
                                                 onPress={() => {
-                                                    setPreviewUri(uri);
-                                                    setPreviewVisible(true);
+                                                    if (justLongPressed) return;
+                                                    if (selectionMode) {
+                                                        toggleSelectThumb(field.field_equip_id, index);
+                                                    } else {
+                                                        setPreview({ uri: file.uri, isNew: true, fieldId: field.field_equip_id, index });
+                                                    }
                                                 }}
+                                                onLongPress={() => handleLongPressThumb(field.field_equip_id, index)}
+                                                style={{ marginRight: 8, marginBottom: 8 }}
                                             >
-                                                <Image
-                                                    source={{ uri }}
-                                                    style={{
-                                                        width: 100,
-                                                        height: 100,
-                                                        borderRadius: 8,
-                                                        marginRight: 8,
-                                                        marginBottom: 8,
-                                                    }}
-                                                    resizeMode="cover"
-                                                />
+                                                <View style={{ position: "relative" }}>
+                                                    <Image
+                                                        source={{ uri: file.uri }}
+                                                        style={{
+                                                            width: 100,
+                                                            height: 100,
+                                                            borderRadius: 8,
+                                                        }}
+                                                        resizeMode="cover"
+                                                    />
+                                                    <View style={styles.newBadge}>
+                                                        <Text style={styles.newBadgeText}>Nuevo</Text>
+                                                    </View>
+
+                                                    {/* overlay de selección */}
+                                                    {isThumbSelected(field.field_equip_id, index) && (
+                                                        <View style={styles.selectionOverlay}>
+                                                            <View style={styles.selectionCheck}>
+                                                                <Ionicons name="checkmark" size={18} color="#fff" />
+                                                            </View>
+                                                        </View>
+                                                    )}
+                                                </View>
                                             </TouchableOpacity>
-                                        );
-                                    })}
-                            </View>
-                        </View>
-                    )}
+                                        ))}
 
-                    {field.fields_type === "date" && (
-                        <TouchableOpacity
-                            style={styles.input}
-                            onPress={() => setShowPicker(field.field_equip_id)}
-                        >
-                            <Text style={{ color: answers[field.field_equip_id] ? "#003366" : "#999" }}>
-                                {answers[field.field_equip_id] || "Seleccionar fecha"}
-                            </Text>
-                        </TouchableOpacity>
-                    )}
+                                        {/* Si ya había imágenes guardadas en el servidor */}
+                                        {Array.isArray(answers[field.field_equip_id]) &&
+                                            answers[field.field_equip_id].map((img, index) => {
+                                                const uri = `${API_URL}/upload/equip/${img}`;
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={`srv_${index}`}
+                                                        onPress={() => {
+                                                            if (justLongPressed) return;
+                                                            if (selectionMode) {
+                                                                // selección de servidor no implementada en este cambio
+                                                            } else {
+                                                                setPreview({ uri, isNew: false, fieldId: field.field_equip_id, index });
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Image
+                                                            source={{ uri }}
+                                                            style={{
+                                                                width: 100,
+                                                                height: 100,
+                                                                borderRadius: 8,
+                                                                marginRight: 8,
+                                                                marginBottom: 8,
+                                                            }}
+                                                            resizeMode="cover"
+                                                        />
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                    </View>
+                                </View>
+                            )}
 
-                    {field.fields_type === "select" && (
-                        <>
-                            <TouchableOpacity
-                                style={styles.pickerContainer}
-                                onPress={() => setSelectModalId(field.field_equip_id)}
-                            >
-                                <Text style={{
-                                    padding: 12,
-                                    color: answers[field.field_equip_id] ? "#000" : "#888",
-                                    fontSize: 16,
-                                }}>
-                                    { (() => {
-                                        const val = answers[field.field_equip_id];
-                                        if (!val) return "Seleccione una opción...";
-                                        const opt = field.options?.find(o => o.value === val);
-                                        return opt ? opt.label : val;
-                                    })() }
-                                </Text>
-                            </TouchableOpacity>
-                        </>
-                    )}
-                </React.Fragment>
-            ))}
+                            {field.fields_type === "date" && (
+                                <TouchableOpacity
+                                    style={styles.input}
+                                    onPress={() => setShowPicker(field.field_equip_id)}
+                                >
+                                    <Text style={{ color: answers[field.field_equip_id] ? "#003366" : "#999" }}>
+                                        {answers[field.field_equip_id] || "Seleccionar fecha"}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
 
-            {showPicker && (
-                <DateTimePicker
-                    value={
-                        answers[showPicker]
-                            ? new Date(answers[showPicker])
-                            : new Date()
-                    }
-                    mode="date"
-                    display="default"
-                    onChange={(event, selectedDate) => {
-                        setShowPicker(null);
-                        if (selectedDate) {
-                            const formatted = selectedDate.toISOString().split("T")[0];
-                            handleChange(showPicker, formatted);
+                            {field.fields_type === "select" && (
+                                <>
+                                    <TouchableOpacity
+                                        style={styles.pickerContainer}
+                                        onPress={() => setSelectModalId(field.field_equip_id)}
+                                    >
+                                        <Text style={{
+                                            padding: 12,
+                                            color: answers[field.field_equip_id] ? "#000" : "#888",
+                                            fontSize: 16,
+                                        }}>
+                                            { (() => {
+                                                const val = answers[field.field_equip_id];
+                                                if (!val) return "Seleccione una opción...";
+                                                const opt = field.options?.find(o => o.value === val);
+                                                return opt ? opt.label : val;
+                                            })() }
+                                        </Text>
+                                    </TouchableOpacity>
+                                </>
+                            )}
+                        </React.Fragment>
+                    );
+                })}
+
+                {showPicker && (
+                    <DateTimePicker
+                        value={
+                            answers[showPicker]
+                                ? new Date(answers[showPicker])
+                                : new Date()
                         }
-                    }}
-                />
-            )}
+                        mode="date"
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                            setShowPicker(null);
+                            if (selectedDate) {
+                                const formatted = selectedDate.toISOString().split("T")[0];
+                                handleChange(showPicker, formatted);
+                            }
+                        }}
+                    />
+                )}
 
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                <Text style={styles.submitButtonText}>Guardar respuestas</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+                    <Text style={styles.submitButtonText}>Guardar respuestas</Text>
+                </TouchableOpacity>
+            </ScrollView>
 
             {/* Modal de vista previa */}
             <Modal
-                visible={previewVisible}
+                visible={!!preview}
                 transparent={true}
-                onRequestClose={() => setPreviewVisible(false)}
+                animationType="fade"
+                onRequestClose={() => setPreview(null)}
             >
                 <View style={styles.previewOverlay}>
-                    <TouchableOpacity style={styles.previewClose} onPress={() => setPreviewVisible(false)}>
-                        <Text style={styles.previewCloseText}>Cerrar</Text>
-                    </TouchableOpacity>
+                    <View style={styles.previewTopRow}>
+                        {preview?.isNew ? (
+                            <View style={styles.previewBadge}>
+                                <Text style={styles.previewBadgeText}>Nuevo</Text>
+                            </View>
+                        ) : (
+                            <View style={{ width: 64 }} /> // espacio cuando no es nuevo
+                        )}
+                        <View style={{ flex: 1 }} />
+                        {preview?.isNew && (
+                            <Animated.View style={{ transform: [{ scale: previewRemoveScale }] }}>
+                                <TouchableOpacity
+                                    style={styles.previewRemoveButton}
+                                    onPress={() => handleRemoveImage(preview.fieldId, preview.index)}
+                                >
+                                    <Ionicons name="trash" size={18} color="#fff" />
+                                    <Text style={styles.previewRemoveText}>Quitar</Text>
+                                </TouchableOpacity>
+                            </Animated.View>
+                        )}
+                        <TouchableOpacity
+                            style={styles.previewCloseButton}
+                            onPress={() => setPreview(null)}
+                        >
+                            <Ionicons name="close" size={18} color="#003366" />
+                            <Text style={styles.previewCloseText}>Cerrar</Text>
+                        </TouchableOpacity>
+                    </View>
+
                     <Image
-                        source={{ uri: previewUri }}
+                        source={{ uri: preview?.uri }}
                         style={styles.previewImage}
                         resizeMode="contain"
                     />
                 </View>
             </Modal>
+
+            {/* Botones flotantes para eliminar selección múltiple (fijos en pantalla) — animados */}
+            <Animated.View
+                pointerEvents={selectionMode ? "auto" : "none"}
+                style={[
+                    styles.fabContainer,
+                    {
+                        opacity: fabAnim,
+                        transform: [
+                            {
+                                translateY: fabAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] })
+                            },
+                            {
+                                scale: fabAnim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] })
+                            }
+                        ]
+                    }
+                ]}
+            >
+                <TouchableOpacity style={styles.fabCancel} onPress={cancelSelectionMode}>
+                    <Ionicons name="close" size={20} color="#003366" />
+                </TouchableOpacity>
+
+                <Animated.View style={{ transform: [{ scale: fabRemoveScale }] }}>
+                    <TouchableOpacity style={styles.fabRemove} onPress={handleBulkRemove}>
+                        <Ionicons name="trash" size={20} color="#fff" />
+                    </TouchableOpacity>
+                </Animated.View>
+            </Animated.View>
 
             {/* Modal personalizado para selects (fondo blanco, texto negro) */}
             {selectModalId && (
@@ -366,7 +625,7 @@ function AnswersForm() {
                     </View>
                 </Modal>
             )}
-        </ScrollView>
+        </View>
     );
 }
 
@@ -420,19 +679,17 @@ export default function AnswersScreen() {
     return (
         <View style={{ flex: 1 }}>
             <AnswersHeader />
-
-            <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: 40 }}
-            >
-                <AnswersForm />
-            </ScrollView>
+            <AnswersForm />
         </View>
     );
 }
 
 
 const styles = StyleSheet.create({
+    formWrapper: {
+        flex: 1,
+        position: "relative",
+    },
     container: {
         flex: 1,
         padding: 16,
@@ -492,7 +749,7 @@ const styles = StyleSheet.create({
         borderColor: "#003366",
         borderRadius: 10,
         marginBottom: 12,
-        backgroundColor: "#fff", // Asegurar fondo blanco
+        backgroundColor: "#fff",
         overflow: "hidden",
     },
     pickerCustom: {
@@ -504,17 +761,47 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         paddingHorizontal: 8,
     },
+    fileRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-start",
+    },
     fileButton: {
         marginVertical: 10,
         backgroundColor: "#003366",
         borderRadius: 10,
         paddingVertical: 12,
+        paddingHorizontal: 14,
         alignItems: "center",
+        flexDirection: "row",
+        minWidth: 140,
+        justifyContent: "center",
+        elevation: 2,
     },
     fileButtonText: {
         color: "#fff",
         fontWeight: "600",
         fontSize: 16,
+    },
+    cameraButton: {
+        marginLeft: 10,
+        marginVertical: 10,
+        backgroundColor: "#eef6ff",
+        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        alignItems: "center",
+        flexDirection: "row",
+        borderWidth: 2,
+        borderColor: "#d0e9ff",
+        flex: 1,
+        justifyContent: "center",
+        elevation: 1,
+    },
+    cameraButtonText: {
+        color: "#003366",
+        fontWeight: "700",
+        fontSize: 15,
     },
     submitButton: {
         marginTop: 20,
@@ -540,19 +827,56 @@ const styles = StyleSheet.create({
         height: "80%",
         borderRadius: 8,
     },
-    previewClose: {
-        position: "absolute",
-        top: 40,
-        right: 20,
-        zIndex: 10,
-        backgroundColor: "#fff",
+    previewTopRow: {
+        width: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    previewBadge: {
+        backgroundColor: "#2e81ffff",
+        paddingHorizontal: 10,
         paddingVertical: 6,
+        borderRadius: 20,
+    },
+    previewBadgeText: {
+        color: "#fff",
+        fontWeight: "700",
+    },
+    previewRemoveButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#e53935",
         paddingHorizontal: 12,
+        paddingVertical: 8,
         borderRadius: 8,
+        elevation: 4,
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
+    },
+    previewRemoveText: {
+        color: "#fff",
+        fontWeight: "700",
+        marginLeft: 6,
+    },
+    previewCloseButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(255,255,255,0.95)",
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#e6e6e6",
+        marginLeft: 8,
+        elevation: 2,
     },
     previewCloseText: {
         color: "#003366",
         fontWeight: "700",
+        marginLeft: 6,
     },
     selectModalOverlay: {
         flex: 1,
@@ -600,5 +924,75 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "600",
         fontSize: 16,
+    },
+    newBadge: {
+        position: "absolute",
+        top: 6,
+        left: 6,
+        backgroundColor: "#2e81ffff",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        elevation: 3,
+    },
+    newBadgeText: {
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: 12,
+    },
+
+    /* estilos selección múltiple */
+    selectionOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0,0,0,0.45)",
+        borderRadius: 8,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    selectionCheck: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: "#4caf50",
+        justifyContent: "center",
+        alignItems: "center",
+        elevation: 5,
+    },
+
+    /* FABes para bulk remove (ABSOLUTOS y fijos en pantalla) */
+    fabContainer: {
+        position: "absolute",
+        right: 16,
+        bottom: 47,
+        flexDirection: "row",
+        alignItems: "center",
+        zIndex: 999,
+    },
+    fabRemove: {
+        backgroundColor: "#e53935",
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        justifyContent: "center",
+        alignItems: "center",
+        elevation: 6,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        marginLeft: 12,
+    },
+    fabCancel: {
+        backgroundColor: "rgba(255,255,255,0.98)",
+        width: 46,
+        height: 46,
+        borderRadius: 12,
+        justifyContent: "center",
+        alignItems: "center",
+        elevation: 3,
+        shadowColor: "#000",
+        shadowOpacity: 0.12,
     },
 });
