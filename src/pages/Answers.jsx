@@ -44,6 +44,8 @@ function AnswersForm() {
     const previewRemoveScale = useRef(new Animated.Value(1)).current;
     const fabRemoveScale = useRef(new Animated.Value(1)).current;
 
+    const [serverImages, setServerImages] = useState({}); // NUEVO: imágenes del servidor por campo
+
     useEffect(() => {
         const fetchFields = async () => {
             try {
@@ -70,7 +72,31 @@ function AnswersForm() {
             }
         };
 
+        const fetchServerImages = async () => {
+            try {
+                // Traer imágenes del servidor por equipmentId
+                const res = await fetch(
+                    `${API_URL}/equipmentsController.php?action=getImagesByEquipmentId&equipment_id=${equipmentId}`
+                );
+                const data = await res.json();
+                // Agrupar por field_equip_id si tu backend lo permite, si no, todo en uno
+                // Suponiendo que cada imagen tiene un campo 'field_equip_id' y 'name'
+                if (Array.isArray(data)) {
+                    const grouped = {};
+                    data.forEach(img => {
+                        const fieldId = img.field_equip_id || "default";
+                        if (!grouped[fieldId]) grouped[fieldId] = [];
+                        grouped[fieldId].push(img.name);
+                    });
+                    setServerImages(grouped);
+                }
+            } catch (err) {
+                setServerImages({});
+            }
+        };
+
         fetchFields();
+        fetchServerImages();
 
         return () => {
             if (justLongPressedTimer.current) {
@@ -375,6 +401,7 @@ function AnswersForm() {
  
                                     {/* Previsualización */}
                                     <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8 }}>
+                                        {/* Imágenes NUEVAS (aún no subidas) */}
                                         {(files[field.field_equip_id] || []).map((file, index) => (
                                             <TouchableOpacity
                                                 key={index}
@@ -415,36 +442,38 @@ function AnswersForm() {
                                             </TouchableOpacity>
                                         ))}
 
-                                        {/* Si ya había imágenes guardadas en el servidor */}
-                                        {Array.isArray(answers[field.field_equip_id]) &&
-                                            answers[field.field_equip_id].map((img, index) => {
-                                                const uri = `${API_URL}/upload/equip/${img}`;
-                                                return (
-                                                    <TouchableOpacity
-                                                        key={`srv_${index}`}
-                                                        onPress={() => {
-                                                            if (justLongPressed) return;
-                                                            if (selectionMode) {
-                                                                // selección de servidor no implementada en este cambio
-                                                            } else {
-                                                                setPreview({ uri, isNew: false, fieldId: field.field_equip_id, index });
-                                                            }
+                                        {/* Imágenes del SERVIDOR */}
+                                        {(
+                                            (serverImages[field.field_equip_id] || [])
+                                            .concat(field.field_equip_id === fields.find(f=>f.fields_type==="file")?.field_equip_id ? (serverImages["default"] || []) : [])
+                                        ).map((imgName, idx) => {
+                                            const uri = `${API_URL}/equipmentsController.php?action=getImage&name=${encodeURIComponent(imgName)}`;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={`srv_${idx}`}
+                                                    onPress={() => {
+                                                        if (justLongPressed) return;
+                                                        if (selectionMode) {
+                                                            // Si quieres selección múltiple de servidor, implementa aquí
+                                                        } else {
+                                                            setPreview({ uri, isNew: false, fieldId: field.field_equip_id, index: idx });
+                                                        }
+                                                    }}
+                                                >
+                                                    <Image
+                                                        source={{ uri }}
+                                                        style={{
+                                                            width: 100,
+                                                            height: 100,
+                                                            borderRadius: 8,
+                                                            marginRight: 8,
+                                                            marginBottom: 8,
                                                         }}
-                                                    >
-                                                        <Image
-                                                            source={{ uri }}
-                                                            style={{
-                                                                width: 100,
-                                                                height: 100,
-                                                                borderRadius: 8,
-                                                                marginRight: 8,
-                                                                marginBottom: 8,
-                                                            }}
-                                                            resizeMode="cover"
-                                                        />
-                                                    </TouchableOpacity>
-                                                );
-                                            })}
+                                                        resizeMode="cover"
+                                                    />
+                                                </TouchableOpacity>
+                                            );
+                                        })}
                                     </View>
                                 </View>
                             )}
