@@ -13,7 +13,7 @@
       "package": "com.cparefrigeracion.app"
     },
     "extra": {
-      "API_URL": "https://alison-unresistant-flourishingly.ngrok-free.dev/MIAPP/api/controller",
+      "API_URL": "https://api.desinfeccionescpa.com.ar/api/controller",
       "eas": {
         "projectId": "b2a304af-5ab2-4e62-8e8b-8f51a67f79ce"
       }
