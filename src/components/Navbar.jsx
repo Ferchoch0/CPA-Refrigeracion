@@ -1,67 +1,78 @@
 import React from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import Icon from "react-native-vector-icons/Ionicons";
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import HomeScreen from "../pages/Home"; // Tu pantalla real de Home
-import EquiposScreen from "../pages/Equipos"; // Tu pantalla real de Equipos
-import GeneralScreen from "../pages/FormGeneral";
+import ProfileScreen from "../pages/Profile";
+import QRScanner from "../pages/QrScanner"; // Pantalla del lector de QR
 
 const Tab = createBottomTabNavigator();
 
 export default function Navbar() {
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.navbar,
-        tabBarActiveTintColor: "#0366c9ff",      // Color activo
-        tabBarInactiveTintColor: "#aaa",         // Color inactivo
-      }}
-    >
-      {/* Home */}
-      <Tab.Screen
-        name="Inicio"
-        component={HomeScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="home" size={26} color={color} />
-          ),
+    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: styles.navbar,
+          tabBarActiveTintColor: "#0366c9ff",
+          tabBarInactiveTintColor: "#aaa",
         }}
-      />
+      >
+        {/* Home */}
+        <Tab.Screen
+          name="Inicio"
+          component={HomeScreen}
+          options={{
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="home" size={26} color={color} />
+            ),
+          }}
+        />
 
-      {/* QR Code */}
-      <Tab.Screen
-        name="QR"
-        component={HomeScreen} // Cambiar después a pantalla QR
-        options={{
-          tabBarIcon: () => (
-            <View style={styles.centerButton}>
-              <Icon name="qr-code" size={28} color="#fff" />
-            </View>
-          ),
-          tabBarLabel: "", // Oculta el texto debajo del botón QR
-        }}
-      />
+        {/* QR Code */}
+        <Tab.Screen
+          name="QR"
+          component={QRScanner}
+          options={{
+            tabBarIcon: () => (
+              <View style={styles.centerButton}>
+                <Ionicons name="qr-code" size={28} color="#fff" />
+              </View>
+            ),
+            tabBarLabel: "",
+          }}
+        />
 
-      {/* Profile */}
-      <Tab.Screen
-        name="Perfil"
-        component={GeneralScreen} // Cambiar después a pantalla a algo que no sea Home
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="person" size={26} color={color} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
+        {/* Profile */}
+        <Tab.Screen
+          name="Perfil"
+          component={ProfileScreen}
+          options={{
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="person" size={26} color={color} />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   navbar: {
     backgroundColor: "#fff",
     height: 70,
+    elevation: 0,        // quita sombra en Android
+    shadowOpacity: 0,    // quita sombra en iOS
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 0,
   },
   centerButton: {
     width: 60,

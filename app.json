@@ -1,12 +1,30 @@
 {
   "expo": {
     "name": "CPA-Refrigeracion",
-    "slug": "CPA-Refrigeracion",
+    "slug": "cpa-refrigeracion-ffdelvalle",
+    "owner": "ffdelvalle",
     "version": "1.0.0",
     "icon": "./assets/logo2.png",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "android": {
       "package": "com.cparefrigeracion.app"
-    }
+    },
+    "extra": {
+      "API_URL": "https://api.desinfeccionescpa.com.ar/api/controller",
+      "eas": {
+        "projectId": "b2a304af-5ab2-4e62-8e8b-8f51a67f79ce"
+      }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-font"
+    ],
+    "assetBundlePatterns": [
+      "**/*",
+      "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/*.ttf"
+    ]
   }
 }

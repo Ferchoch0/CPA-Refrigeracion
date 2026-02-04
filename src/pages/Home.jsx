@@ -1,31 +1,47 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList } from "react-native";
 import Calendar from "../components/Calendar";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from "react-native-safe-area-context";
+import Constants from 'expo-constants';
 
+const API_URL = Constants.expoConfig.extra.API_URL;
 const Navbar = () => {
     return (
-        <View style={styles.navbar}>
-            <View style={styles.logoWrapper}>
-                <Image
-                    source={require("../../assets/logo2.png")}
-                    style={styles.logoImage}
-                />
+        <SafeAreaView style={{ backgroundColor: "#003366" }}>
+            <View style={styles.navbar}>
+                <View style={styles.logoWrapper}>
+                    <Image
+                        source={require("../../assets/logo2.png")}
+                        style={styles.logoImage}
+                    />
+                </View>
+                <Text style={styles.navTitle}>Inicio</Text>
             </View>
-            <Text style={styles.navTitle}>Inicio</Text>
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-        </View>
+        </SafeAreaView>
     );
 };
 
-const Header = ({ name }) => (
+const Header = ({ user }) => (
     <View style={styles.header}>
-        <View>
-            <Text style={styles.greeting}>Hola, {name}</Text>
+        <View style={{ flex: 1, marginRight: 12 }}>
+            <Text
+                style={styles.greeting}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+            >
+                Hola, {user?.name || "Usuario"}
+            </Text>
             <Text style={styles.welcome}>Bienvenido de nuevo</Text>
         </View>
         <Image
-            source={{ uri: "https://randomuser.me/api/portraits/men/3.jpg" }}
+            source={
+                user?.photo
+                    ? { uri: `${API_URL}/upload/profile/${user.photo}` }
+                    : require("../../assets/image-profile.jpg")
+            }
             style={styles.avatar}
         />
     </View>
@@ -40,7 +56,8 @@ const SearchBar = ({ data, onFilter }) => {
             onFilter(data);
         } else {
             const filtered = data.filter((client) =>
-                client.name.toLowerCase().includes(text.toLowerCase())
+                (client.company_name && client.company_name.toLowerCase().includes(text.toLowerCase())) ||
+                (client.contact_person && client.contact_person.toLowerCase().includes(text.toLowerCase()))
             );
             onFilter(filtered);
         }
@@ -54,56 +71,82 @@ const SearchBar = ({ data, onFilter }) => {
                 placeholder="Buscar cliente..."
                 value={search}
                 onChangeText={handleSearch}
+                placeholderTextColor="#808080"
             />
         </View>
     );
 };
 
-const projects = [
-    {
-        id: "1",
-        title: "Agregar +",
-        category: "Nuevo cliente",
-        icon: "person-add-outline",
-        window: "NewClient"
-    },
-    {
-        id: "2",
-        title: "Lista Completa",
-        category: "Ver todos los clientes",
-        icon: "people-outline",
-        window: "ClientsList"
-    },
-];
-
-const clients = [
-    { id: "1", name: "Juan Pérez", status: "Activo", icon: "person-circle-outline" },
-    { id: "2", name: "María López", status: "Activo", icon: "person-circle-outline" },
-    { id: "3", name: "Carlos Díaz", status: "Completado", icon: "person-circle-outline" },
-    { id: "4", name: "Ana Gómez", status: "Activo", icon: "person-circle-outline" },
-    { id: "5", name: "Luis Fernández", status: "Completado", icon: "person-circle-outline" },
-    { id: "6", name: "Sofía Martínez", status: "Activo", icon: "person-circle-outline" },
-    { id: "7", name: "Sofía Martínez", status: "Activo", icon: "person-circle-outline" },
-    { id: "8", name: "Sofía Martínez", status: "Activo", icon: "person-circle-outline" },
-    { id: "9", name: "Sofía Martínez", status: "Activo", icon: "person-circle-outline" },
-
-];
-
-const ClientItem = ({ item }) => (
-    <View style={styles.clientItem}>
+const ClientItem = ({ item, navigation }) => (
+    <TouchableOpacity
+        style={styles.clientItem}
+        onPress={() => navigation.navigate("Equipos", {
+            clientId: item.client_id,
+            clientName: item.company_name
+        })}
+    >
         <View style={styles.iconContainer}>
-            <Ionicons name={item.icon} size={28} color="#003366" />
+            <Ionicons name="business-outline" size={28} color="#003366" />
         </View>
         <View>
-            <Text style={styles.clientName}>{item.name}</Text>
-            <Text style={styles.clientStatus}>{item.status}</Text>
+            <Text style={styles.clientName}>{item.company_name}</Text>
+            <Text style={styles.clientLocation} numberOfLines={1} ellipsizeMode="tail">
+                {item.location || item.address || ""}
+            </Text>
+            <Text style={styles.clientStatus}>{item.contact_person}</Text>
         </View>
-    </View>
+    </TouchableOpacity>
 );
 
 export default function HomeScreen() {
-    const [filteredClients, setFilteredClients] = useState(clients);
+    const [user, setUser] = useState(null);
+    const [filteredClients, setFilteredClients] = useState([]);
+    const [userName, setUserName] = useState("Usuario");
+    const [userId, setUserId] = useState(null);
+    const [allClients, setAllClients] = useState([]);
+    const navigation = useNavigation();
 
+    const fetchClients = async (id) => {
+        try {
+            const response = await fetch(`${API_URL}/clientController.php`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "getClients",
+                    userId: id
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                console.log("Clientes recibidos:", result.clients);
+                setAllClients(result.clients);
+                setFilteredClients(result.clients);
+            } else {
+                console.log("Error al traer clientes:", result.error);
+                setAllClients([]);
+                setFilteredClients([]);
+            }
+        } catch (error) {
+            console.log("Error fetchClients:", error);
+        }
+    };
+
+    useEffect(() => {
+        const loadUser = async () => {
+            const storedUser = await AsyncStorage.getItem('user');
+            if (storedUser) {
+                const u = JSON.parse(storedUser);
+                setUser(u);              // ← guardo el objeto completo
+                setUserName(u.name);
+                setUserId(u.id);
+
+                fetchClients(u.id);
+            }
+        };
+        loadUser();
+    }, []);
     return (
         <View style={styles.container}>
             <Navbar />
@@ -112,25 +155,21 @@ export default function HomeScreen() {
                 keyExtractor={(item, index) => index.toString()}
                 ListHeaderComponent={
                     <>
-                        <Header name="Diego" />
+                        <Header user={user} />
                         <Calendar />
                         <View style={styles.mainContent}>
-                            <SearchBar data={clients} onFilter={setFilteredClients} />
+                            <SearchBar data={allClients} onFilter={setFilteredClients} />
 
                             <View style={styles.containerClientTitle}>
-                                <Text style={styles.sectionTitle}>Últimos clientes</Text>
-                                <TouchableOpacity>
-                                    <Text style={{ color: "#b3b8d3ff" }}>Ver todos</Text>
-                                </TouchableOpacity>
+                                <Text style={styles.sectionTitle}>Clientes Asignados</Text>
                             </View>
 
 
 
                             <FlatList
                                 data={filteredClients}
-                                keyExtractor={(item) => item.id}
-                                renderItem={({ item }) => <ClientItem item={item} />}
-                                style={{ flexGrow: 0 }}
+                                keyExtractor={(item) => item.client_id.toString()}
+                                renderItem={({ item }) => <ClientItem item={item} navigation={navigation} />}
                             />
                         </View>
                     </>
@@ -146,34 +185,26 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        height: 70,
+        height: 60,
         paddingHorizontal: 16,
         backgroundColor: "#003366",
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 3 },
-        shadowRadius: 4,
-        elevation: 3,
         borderBottomWidth: 1,
         borderBottomColor: "#002244",
     },
 
-    logoWrapper: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: "#fff",
-        justifyContent: "center",
-        alignItems: "center",
-    },
+
 
     logoImage: {
-        width: 45,
-        height: 45,
+        width: 55,
+        height: 55,
         resizeMode: "contain",
     },
 
     navTitle: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        textAlign: "center",
         fontSize: 20,
         fontWeight: "bold",
         color: "#fff",
@@ -197,7 +228,13 @@ const styles = StyleSheet.create({
 
     mainContent: { flex: 1, padding: 10, paddingHorizontal: 16 },
 
-    greeting: { color: "#eee", fontSize: 24, fontWeight: "bold" },
+    greeting: {
+        color: "#eee",
+        fontSize: 24,
+        fontWeight: "bold",
+        flexWrap: "wrap",
+        flexShrink: 1
+    },
     welcome: { color: "#b3b8d3ff", fontSize: 14 },
     avatar: { width: 55, height: 55, borderRadius: 30, backgroundColor: "#ccc" },
 
@@ -221,7 +258,7 @@ const styles = StyleSheet.create({
         flex: 1,
         marginLeft: 8,
         fontSize: 15,
-        color: "#303030",           // mismo tono que el greeting
+        color: "#303030",
     },
 
     workItem: {
@@ -251,7 +288,14 @@ const styles = StyleSheet.create({
         padding: 12,
         marginBottom: 8,
     },
-    clientName: { fontSize: 16, fontWeight: "bold", color: "#1C3F6E" },
+    clientName: { fontSize: 16, fontWeight: "bold", color: "#1e5db1ff" },
+    clientLocation: {
+        fontSize: 13,
+        fontWeight: "bold",
+        color: "#4e4e4eff",
+        marginTop: 1,
+        marginBottom: 3,
+    },
     clientStatus: { fontSize: 12, color: "#666" },
     iconContainer: {
         width: 35,
