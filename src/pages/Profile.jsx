@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
-import Constants from "expo-constants";
 import Toast from "react-native-toast-message";
 
+import useAuth from "../hooks/useAuth";
+import { uploadProfilePhoto, getProfilePhotoUrl } from "../services/profileService";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
 const { height } = Dimensions.get("window");
 
 export default function Profile() {
-  const [user, setUser] = useState(null);
+  const { user, setUser } = useAuth();
   const navigation = useNavigation();
 
   const handleChangePhoto = async () => {
@@ -25,7 +24,6 @@ export default function Profile() {
 
       if (result.type === "cancel") return;
 
-      // Normalizar data (por compatibilidad entre SDKs)
       const file = result.assets ? result.assets[0] : result;
       if (!file?.uri) {
         Toast.show({
@@ -36,29 +34,16 @@ export default function Profile() {
         return;
       }
 
-      const formData = new FormData();
-      formData.append("action", "uploadProfilePhoto");
-      formData.append("userId", user.id);
-      formData.append("photo", {
+      const photoFile = {
         uri: file.uri,
         name: file.name || `profile_${user.id}.jpg`,
         type: file.mimeType || "image/jpeg",
-      });
+      };
 
-      const response = await fetch(`${API_URL}/technicalController.php`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
+      const data = await uploadProfilePhoto(user.id, photoFile);
 
       if (data.success && data.filename) {
-        const updatedUser = { ...user, photo: data.filename };
-        setUser(updatedUser);
-        await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
+        await setUser({ ...user, photo: data.filename });
 
         Toast.show({
           type: "success",
@@ -81,20 +66,6 @@ export default function Profile() {
       });
     }
   };
-
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem("user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-      } catch (error) {
-        console.error("Error al cargar usuario:", error);
-      }
-    };
-    loadUser();
-  }, []);
 
   if (!user) {
     return (
@@ -119,7 +90,7 @@ export default function Profile() {
 
         <View style={styles.photoWrapper}>
           <Image
-            source={{ uri: `${API_URL}/upload/profile/${user.photo}` }}
+            source={{ uri: getProfilePhotoUrl(user.photo) }}
             style={styles.photo}
           />
           <TouchableOpacity style={styles.cameraIcon} onPress={handleChangePhoto}>

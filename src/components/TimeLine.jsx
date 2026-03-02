@@ -2,9 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { useNavigation, useIsFocused } from '@react-navigation/native';
-import Constants from 'expo-constants';
-
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { getQuestionsCategory } from '../services/equipmentService';
 
 const TimelineItem = ({ item, isSelected, onPress, equipmentId, typeEquipId, equipmentCode }) => {
   const navigation = useNavigation();
@@ -63,8 +61,8 @@ const TimelineItem = ({ item, isSelected, onPress, equipmentId, typeEquipId, equ
                   styles.progressBar,
                   {
                     width: `${item.questions_total && item.questions_total > 0
-                        ? (item.questions_answered / item.questions_total) * 100
-                        : 0
+                      ? (item.questions_answered / item.questions_total) * 100
+                      : 0
                       }%`,
                   },
                 ]}
@@ -104,10 +102,7 @@ export function TimelineScreen({ equipmentId, typeEquipId, equipmentCode }) {
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const response = await fetch(
-          `${API_URL}/equipmentsController.php?action=getQuestionsCategory&equipment_id=${equipmentId}`
-        );
-        const data = await response.json();
+        const data = await getQuestionsCategory(equipmentId);
         if (!data.error) {
           setTasks(data);
         } else {

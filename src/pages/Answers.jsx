@@ -8,53 +8,47 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import { useRoute } from "@react-navigation/native";
-import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import Constants from 'expo-constants';
 import DateTimePicker from "@react-native-community/datetimepicker";
-
 import Toast from "react-native-toast-message";
 
+import {
+    getQuestionsByType,
+    getImagesByEquipmentId,
+    getQuestionsCategory,
+    getImageUrl,
+    saveAnswers,
+} from "../services/equipmentService";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
+
 function AnswersForm() {
     const [fields, setFields] = useState([]);
     const [answers, setAnswers] = useState({});
     const [files, setFiles] = useState({});
     const [loading, setLoading] = useState(true);
-    // preview: null | { uri, isNew: boolean, fieldId, index }
     const [preview, setPreview] = useState(null);
     const route = useRoute();
     const { categoryId, equipmentId, typeEquipId } = route.params;
     const [showPicker, setShowPicker] = useState(null);
     const [selectModalId, setSelectModalId] = useState(null);
 
-    // selección múltiple por mantener presionado
     const [selectionMode, setSelectionMode] = useState(false);
-    // estructura: { [fieldId]: Set(indices) }
     const [selected, setSelected] = useState({});
-
-    // flag para evitar que onPress se ejecute justo después de onLongPress
     const [justLongPressed, setJustLongPressed] = useState(false);
     const justLongPressedTimer = useRef(null);
 
-    // animaciones FAB
-    const fabAnim = useRef(new Animated.Value(0)).current; // 0 oculto, 1 visible
+    const fabAnim = useRef(new Animated.Value(0)).current;
     const previewRemoveScale = useRef(new Animated.Value(1)).current;
     const fabRemoveScale = useRef(new Animated.Value(1)).current;
 
-    const [serverImages, setServerImages] = useState({}); // NUEVO: imágenes del servidor por campo
+    const [serverImages, setServerImages] = useState({});
 
     useEffect(() => {
         const fetchFields = async () => {
             try {
                 console.log("Buscando respuestas para equipmentId:", equipmentId);
-
-                const response = await fetch(
-                    `${API_URL}/equipmentsController.php?action=getQuestionsByType&category_id=${categoryId}&type_equip_id=${typeEquipId}&equipment_id=${equipmentId}`
-                );
-                const data = await response.json();
+                const data = await getQuestionsByType(categoryId, typeEquipId, equipmentId);
                 console.log("Datos recibidos:", data);
 
                 if (data.error) {
@@ -74,7 +68,7 @@ function AnswersForm() {
                 }
             } catch (error) {
                 console.error("Error en fetch:", error);
-                 Toast.show({
+                Toast.show({
                     type: 'error',
                     text1: 'Error de conexión',
                     text2: 'No se pudieron cargar los datos',
@@ -88,13 +82,7 @@ function AnswersForm() {
 
         const fetchServerImages = async () => {
             try {
-                // Traer imágenes del servidor por equipmentId
-                const res = await fetch(
-                    `${API_URL}/equipmentsController.php?action=getImagesByEquipmentId&equipment_id=${equipmentId}`
-                );
-                const data = await res.json();
-                // Agrupar por field_equip_id si tu backend lo permite, si no, todo en uno
-                // Suponiendo que cada imagen tiene un campo 'field_equip_id' y 'name'
+                const data = await getImagesByEquipmentId(equipmentId);
                 if (Array.isArray(data)) {
                     const grouped = {};
                     data.forEach(img => {
@@ -119,7 +107,6 @@ function AnswersForm() {
         };
     }, [categoryId, equipmentId, typeEquipId]);
 
-    // animar FAB al entrar/salir selectionMode
     useEffect(() => {
         Animated.timing(fabAnim, {
             toValue: selectionMode ? 1 : 0,
@@ -245,12 +232,8 @@ function AnswersForm() {
                 });
             }
 
-            const response = await fetch(`${API_URL}/equipmentsController.php`, {
-                method: "POST",
-                body: formData,
-            });
+            const response = await saveAnswers(formData);
 
-            // 🔎 Mostrar el texto exacto que devuelve el servidor
             const text = await response.text();
             console.log("=== RESPUESTA DEL SERVIDOR (TEXTO CRUDO) ===");
             console.log(text);
@@ -274,7 +257,6 @@ function AnswersForm() {
         }
     };
 
-    // animación pequeña antes de eliminar (preview)
     const animatePreviewRemoveThen = async (cb) => {
         await new Promise(res => {
             Animated.sequence([
@@ -286,7 +268,6 @@ function AnswersForm() {
     };
 
     const handleRemoveImage = (fieldId, index) => {
-        // animar botón, luego eliminar
         animatePreviewRemoveThen(() => {
             setFiles(prev => {
                 const arr = [...(prev[fieldId] || [])];
@@ -297,9 +278,7 @@ function AnswersForm() {
         });
     };
 
-    // selección: iniciar con long press
     const handleLongPressThumb = (fieldId, index) => {
-        // indicar que hubo long press para bloquear el onPress que pueda venir después
         setJustLongPressed(true);
         if (justLongPressedTimer.current) clearTimeout(justLongPressedTimer.current);
         justLongPressedTimer.current = setTimeout(() => setJustLongPressed(false), 350);
@@ -324,7 +303,6 @@ function AnswersForm() {
             } else {
                 next[fieldId].add(index);
             }
-            // si quedó vacío, salir del modo selección
             const hasAny = Object.keys(next).length > 0;
             setSelectionMode(hasAny);
             return next;
@@ -335,7 +313,6 @@ function AnswersForm() {
         return !!(selected[fieldId] && selected[fieldId].has(index));
     };
 
-    // animación para FAB remove then bulk remove
     const animateFabRemoveThen = async (cb) => {
         await new Promise(res => {
             Animated.sequence([
@@ -346,16 +323,15 @@ function AnswersForm() {
         cb && cb();
     };
 
-    // borrar todas las seleccionadas (bulk)
     const handleBulkRemove = () => {
         animateFabRemoveThen(() => {
             setFiles(prev => {
                 const next = { ...prev };
                 Object.keys(selected).forEach(fieldId => {
-                    const toRemove = Array.from(selected[fieldId]).sort((a,b)=>b-a); // eliminar índices de mayor a menor
+                    const toRemove = Array.from(selected[fieldId]).sort((a, b) => b - a);
                     const arr = [...(next[fieldId] || [])];
                     toRemove.forEach(idx => {
-                        if (idx >=0 && idx < arr.length) arr.splice(idx,1);
+                        if (idx >= 0 && idx < arr.length) arr.splice(idx, 1);
                     });
                     next[fieldId] = arr;
                 });
@@ -389,54 +365,54 @@ function AnswersForm() {
                         ? `Fotos nuevas (${newCount})`
                         : "Seleccionar foto";
 
-                     return (
-                         <React.Fragment key={field.field_equip_id}>
-                             <Text style={styles.label}>{field.name}</Text>
- 
-                             {field.fields_type === "text" && (
-                                 <TextInput
-                                     style={styles.input}
-                                     placeholder={field.description || field.name}
-                                     value={answers[field.field_equip_id] || ""}
-                                     onChangeText={(val) => handleChange(field.field_equip_id, val)}
-                                     placeholderTextColor="#808080"
-                                 />
-                             )}
- 
-                             {field.fields_type === "number" && (
-                                 <TextInput
-                                     style={styles.input}
-                                     keyboardType="numeric"
-                                     placeholder={field.description || field.name}
-                                     value={answers[field.field_equip_id] || ""}
-                                     onChangeText={(val) => handleChange(field.field_equip_id, val)}
-                                     placeholderTextColor="#808080"
-                                 />
-                             )}
- 
-                             {field.fields_type === "file" && (
-                                 <View style={{ marginVertical: 10 }}>
-                                     <View style={styles.fileRow}>
-                                         <TouchableOpacity
-                                             style={styles.fileButton}
-                                             onPress={() => handleFilePick(field.field_equip_id)}
-                                         >
+                    return (
+                        <React.Fragment key={field.field_equip_id}>
+                            <Text style={styles.label}>{field.name}</Text>
+
+                            {field.fields_type === "text" && (
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder={field.description || field.name}
+                                    value={answers[field.field_equip_id] || ""}
+                                    onChangeText={(val) => handleChange(field.field_equip_id, val)}
+                                    placeholderTextColor="#808080"
+                                />
+                            )}
+
+                            {field.fields_type === "number" && (
+                                <TextInput
+                                    style={styles.input}
+                                    keyboardType="numeric"
+                                    placeholder={field.description || field.name}
+                                    value={answers[field.field_equip_id] || ""}
+                                    onChangeText={(val) => handleChange(field.field_equip_id, val)}
+                                    placeholderTextColor="#808080"
+                                />
+                            )}
+
+                            {field.fields_type === "file" && (
+                                <View style={{ marginVertical: 10 }}>
+                                    <View style={styles.fileRow}>
+                                        <TouchableOpacity
+                                            style={styles.fileButton}
+                                            onPress={() => handleFilePick(field.field_equip_id)}
+                                        >
                                             <Ionicons name="images" size={16} color="#fff" style={{ marginRight: 8 }} />
-                                             <Text style={styles.fileButtonText}>
-                                                 {fileButtonLabel}
-                                             </Text>
-                                         </TouchableOpacity>
- 
-                                         <TouchableOpacity
-                                             style={styles.cameraButton}
-                                             onPress={() => handleTakePhoto(field.field_equip_id)}
-                                             activeOpacity={0.8}
-                                         >
-                                             <Ionicons name="camera" size={18} color="#003366" style={{ marginRight: 8 }} />
-                                             <Text style={styles.cameraButtonText}>Tomar foto</Text>
-                                         </TouchableOpacity>
-                                     </View>
- 
+                                            <Text style={styles.fileButtonText}>
+                                                {fileButtonLabel}
+                                            </Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity
+                                            style={styles.cameraButton}
+                                            onPress={() => handleTakePhoto(field.field_equip_id)}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Ionicons name="camera" size={18} color="#003366" style={{ marginRight: 8 }} />
+                                            <Text style={styles.cameraButtonText}>Tomar foto</Text>
+                                        </TouchableOpacity>
+                                    </View>
+
                                     {/* Previsualización */}
                                     <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8 }}>
                                         {/* Imágenes NUEVAS (aún no subidas) */}
@@ -468,7 +444,6 @@ function AnswersForm() {
                                                         <Text style={styles.newBadgeText}>Nuevo</Text>
                                                     </View>
 
-                                                    {/* overlay de selección */}
                                                     {isThumbSelected(field.field_equip_id, index) && (
                                                         <View style={styles.selectionOverlay}>
                                                             <View style={styles.selectionCheck}>
@@ -483,16 +458,15 @@ function AnswersForm() {
                                         {/* Imágenes del SERVIDOR */}
                                         {(
                                             (serverImages[field.field_equip_id] || [])
-                                            .concat(field.field_equip_id === fields.find(f=>f.fields_type==="file")?.field_equip_id ? (serverImages["default"] || []) : [])
+                                                .concat(field.field_equip_id === fields.find(f => f.fields_type === "file")?.field_equip_id ? (serverImages["default"] || []) : [])
                                         ).map((imgName, idx) => {
-                                            const uri = `${API_URL}/equipmentsController.php?action=getImage&name=${encodeURIComponent(imgName)}`;
+                                            const uri = getImageUrl(imgName);
                                             return (
                                                 <TouchableOpacity
                                                     key={`srv_${idx}`}
                                                     onPress={() => {
                                                         if (justLongPressed) return;
                                                         if (selectionMode) {
-                                                            // Si quieres selección múltiple de servidor, implementa aquí
                                                         } else {
                                                             setPreview({ uri, isNew: false, fieldId: field.field_equip_id, index: idx });
                                                         }
@@ -538,12 +512,12 @@ function AnswersForm() {
                                             color: answers[field.field_equip_id] ? "#000" : "#888",
                                             fontSize: 16,
                                         }}>
-                                            { (() => {
+                                            {(() => {
                                                 const val = answers[field.field_equip_id];
                                                 if (!val) return "Seleccione una opción...";
                                                 const opt = field.options?.find(o => o.value === val);
                                                 return opt ? opt.label : val;
-                                            })() }
+                                            })()}
                                         </Text>
                                     </TouchableOpacity>
                                 </>
@@ -590,7 +564,7 @@ function AnswersForm() {
                                 <Text style={styles.previewBadgeText}>Nuevo</Text>
                             </View>
                         ) : (
-                            <View style={{ width: 64 }} /> // espacio cuando no es nuevo
+                            <View style={{ width: 64 }} />
                         )}
                         <View style={{ flex: 1 }} />
                         {preview?.isNew && (
@@ -621,7 +595,7 @@ function AnswersForm() {
                 </View>
             </Modal>
 
-            {/* Botones flotantes para eliminar selección múltiple (fijos en pantalla) — animados */}
+            {/* Botones flotantes para eliminar selección múltiple */}
             <Animated.View
                 pointerEvents={selectionMode ? "auto" : "none"}
                 style={[
@@ -650,7 +624,7 @@ function AnswersForm() {
                 </Animated.View>
             </Animated.View>
 
-            {/* Modal personalizado para selects (fondo blanco, texto negro) */}
+            {/* Modal personalizado para selects */}
             {selectModalId && (
                 <Modal
                     visible={true}
@@ -701,16 +675,12 @@ function AnswersHeader() {
     const route = useRoute();
     const { categoryId, equipmentId, typeEquipId, equipmentCode } = route.params;
 
-    // Estado para el nombre de la categoría
     const [categoryName, setCategoryName] = useState("");
+
     useEffect(() => {
-        // Traer el nombre de la categoría usando categoryId
         const fetchCategoryName = async () => {
             try {
-                const response = await fetch(
-                    `${API_URL}/equipmentsController.php?action=getQuestionsCategory&equipment_id=${equipmentId}`
-                );
-                const data = await response.json();
+                const data = await getQuestionsCategory(equipmentId);
                 if (Array.isArray(data)) {
                     const cat = data.find(c => c.field_category_id == categoryId);
                     setCategoryName(cat ? cat.name : "");
@@ -1030,7 +1000,7 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
 
-    /* FABes para bulk remove (ABSOLUTOS y fijos en pantalla) */
+    /* FABes para bulk remove */
     fabContainer: {
         position: "absolute",
         right: 16,

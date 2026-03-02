@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList } from "react-native";
 import Calendar from "../components/Calendar";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Constants from 'expo-constants';
 
-const API_URL = Constants.expoConfig.extra.API_URL;
-const Navbar = () => {
+import useAuth from "../hooks/useAuth";
+import useClients from "../hooks/useClients";
+import { getProfilePhotoUrl } from "../services/profileService";
+
+// ─── Sub-componentes locales ────────────────────────────────
+
+const HomeNavbar = () => {
     return (
         <SafeAreaView style={{ backgroundColor: "#003366" }}>
             <View style={styles.navbar}>
@@ -39,7 +42,7 @@ const Header = ({ user }) => (
         <Image
             source={
                 user?.photo
-                    ? { uri: `${API_URL}/upload/profile/${user.photo}` }
+                    ? { uri: getProfilePhotoUrl(user.photo) }
                     : require("../../assets/image-profile.jpg")
             }
             style={styles.avatar}
@@ -99,58 +102,16 @@ const ClientItem = ({ item, navigation }) => (
     </TouchableOpacity>
 );
 
+// ─── Pantalla principal ─────────────────────────────────────
+
 export default function HomeScreen() {
-    const [user, setUser] = useState(null);
-    const [filteredClients, setFilteredClients] = useState([]);
-    const [userName, setUserName] = useState("Usuario");
-    const [userId, setUserId] = useState(null);
-    const [allClients, setAllClients] = useState([]);
+    const { user } = useAuth();
+    const { allClients, filteredClients, setFilteredClients } = useClients(user?.id);
     const navigation = useNavigation();
 
-    const fetchClients = async (id) => {
-        try {
-            const response = await fetch(`${API_URL}/clientController.php`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    action: "getClients",
-                    userId: id
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                console.log("Clientes recibidos:", result.clients);
-                setAllClients(result.clients);
-                setFilteredClients(result.clients);
-            } else {
-                console.log("Error al traer clientes:", result.error);
-                setAllClients([]);
-                setFilteredClients([]);
-            }
-        } catch (error) {
-            console.log("Error fetchClients:", error);
-        }
-    };
-
-    useEffect(() => {
-        const loadUser = async () => {
-            const storedUser = await AsyncStorage.getItem('user');
-            if (storedUser) {
-                const u = JSON.parse(storedUser);
-                setUser(u);              // ← guardo el objeto completo
-                setUserName(u.name);
-                setUserId(u.id);
-
-                fetchClients(u.id);
-            }
-        };
-        loadUser();
-    }, []);
     return (
         <View style={styles.container}>
-            <Navbar />
+            <HomeNavbar />
             <FlatList
                 data={[]}
                 keyExtractor={(item, index) => index.toString()}
@@ -164,8 +125,6 @@ export default function HomeScreen() {
                             <View style={styles.containerClientTitle}>
                                 <Text style={styles.sectionTitle}>Clientes Asignados</Text>
                             </View>
-
-
 
                             <FlatList
                                 data={filteredClients}
@@ -181,6 +140,8 @@ export default function HomeScreen() {
     );
 }
 
+// ─── Estilos ────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
     navbar: {
         flexDirection: "row",
@@ -192,8 +153,6 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: "#002244",
     },
-
-
 
     logoImage: {
         width: 55,

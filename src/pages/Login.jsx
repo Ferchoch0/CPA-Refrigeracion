@@ -1,15 +1,14 @@
 import React, { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Image, Alert
+  StyleSheet, Image
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Toast from "react-native-toast-message";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
+import { login } from "../services/authService";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -17,20 +16,10 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch(`${API_URL}/technicalController.php`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "verifyUser",
-          email,
-          pass
-        })
-      });
-
-      const result = await response.json();
+      const result = await login(email, pass);
 
       if (result.success) {
-        await AsyncStorage.setItem('user', JSON.stringify(result.user));
+        await AsyncStorage.setItem("user", JSON.stringify(result.user));
         Toast.show({
           type: "success",
           text1: "¡Logueado correctamente!",
@@ -62,7 +51,7 @@ export default function LoginScreen({ navigation }) {
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid={true}
-        extraScrollHeight={10} // ajusta el empuje
+        extraScrollHeight={10}
       >
         <View style={{ flex: 1, justifyContent: "space-between" }}>
           <View style={styles.header}>
@@ -145,8 +134,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderWidth: 1,
     borderColor: "#ddd",
-    color: "#003366", // Color del texto visible
-    fontSize: 16, // Tamaño explícito
+    color: "#003366",
+    fontSize: 16,
   },
   loginBtn: {
     backgroundColor: "#003366",
