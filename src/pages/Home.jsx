@@ -90,6 +90,7 @@ const ClientItem = ({ item, navigation }) => (
         </View>
         <View>
             <Text style={styles.clientName}>{item.company_name}</Text>
+            <Text style={styles.clientCode}>{item.client_code}</Text>
             <Text style={styles.clientLocation} numberOfLines={1} ellipsizeMode="tail">
                 {item.location || item.address || ""}
             </Text>
@@ -289,6 +290,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     clientName: { fontSize: 16, fontWeight: "bold", color: "#1e5db1ff" },
+    clientCode: { fontSize: 12, color: "#999", marginTop: 2, marginBottom: 3 },
     clientLocation: {
         fontSize: 13,
         fontWeight: "bold",
