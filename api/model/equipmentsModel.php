@@ -874,6 +874,56 @@ class EquipmentsModel
         return $equipTypes;
     }
 
+    public function deleteImage($equipmentId, $imageName)
+    {
+        try {
+            // 1. Verificar que la imagen existe en BD y pertenece al equipo
+            $stmt = $this->conn->prepare("
+            SELECT image_id, name 
+            FROM images 
+            WHERE equipment_id = ? AND name = ?
+        ");
+
+            $stmt->bind_param("is", $equipmentId, $imageName);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $image = $result->fetch_assoc();
+            $stmt->close();
+
+            if (!$image) {
+                return ['error' => 'ERR_IMAGE_NOT_FOUND'];
+            }
+
+            // 2. Borrar archivo físico
+            $filePath = __DIR__ . "/../controller/upload/equip/" . $imageName;
+
+            if (file_exists($filePath)) {
+                if (!unlink($filePath)) {
+                    return ['error' => 'ERR_FILE_DELETE_FAILED'];
+                }
+            }
+
+            // 3. Borrar registro de BD
+            $stmt = $this->conn->prepare("DELETE FROM images WHERE image_id = ?");
+            $stmt->bind_param("i", $image['image_id']);
+
+            if (!$stmt->execute()) {
+                $stmt->close();
+                return ['error' => 'ERR_DB_DELETE_FAILED'];
+            }
+
+            $stmt->close();
+
+            return [
+                'success' => true,
+                'message' => 'Imagen eliminada correctamente'
+            ];
+
+        } catch (Exception $e) {
+            return ['error' => $e->getMessage()];
+        }
+    }
+
 
 }
 ?>

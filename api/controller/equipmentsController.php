@@ -189,6 +189,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
             }
             break;
+        case 'deleteImage':
+            if (isset($data['equipment_id'], $data['name'])) {
+                $equipmentId = intval($data['equipment_id']);
+                $imageName = $data['name'];
+
+                $result = $equipmentsModel->deleteImage($equipmentId, $imageName);
+                echo json_encode($result);
+            } else {
+                echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+            }
+            break;
         default:
             echo json_encode(['error' => 'ERR_UNKNOWN_ACTION']);
             break;

@@ -61,12 +61,26 @@ function AnswersForm() {
                     console.error("Error del servidor:", data.error);
                     setFields([]);
                     setAnswers({});
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Error',
+                        text2: data.error,
+                        position: 'bottom',
+                        visibilityTime: 3000,
+                    });
                 } else {
                     setFields(data.questions || []);
                     setAnswers(data.answers || {});
                 }
             } catch (error) {
                 console.error("Error en fetch:", error);
+                 Toast.show({
+                    type: 'error',
+                    text1: 'Error de conexión',
+                    text2: 'No se pudieron cargar los datos',
+                    position: 'bottom',
+                    visibilityTime: 3000,
+                });
             } finally {
                 setLoading(false);
             }
@@ -155,7 +169,13 @@ function AnswersForm() {
         try {
             const { status } = await ImagePicker.requestCameraPermissionsAsync();
             if (status !== "granted") {
-                alert("Permiso de cámara denegado");
+                Toast.show({
+                    type: 'error',
+                    text1: 'Permiso denegado',
+                    text2: 'No se otorgó permiso para usar la cámara',
+                    position: 'bottom',
+                    visibilityTime: 3000,
+                });
                 return;
             }
 
@@ -193,7 +213,13 @@ function AnswersForm() {
         try {
             const storedUser = await AsyncStorage.getItem("user");
             if (!storedUser) {
-                alert("No se encontró el usuario en la sesión");
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: 'Usuario no encontrado en almacenamiento local',
+                    position: 'bottom',
+                    visibilityTime: 3000,
+                });
                 return;
             }
 
@@ -228,11 +254,23 @@ function AnswersForm() {
             const text = await response.text();
             console.log("=== RESPUESTA DEL SERVIDOR (TEXTO CRUDO) ===");
             console.log(text);
-            alert("Respuesta del servidor:\n\n" + text);
+            Toast.show({
+                type: 'success',
+                text1: 'Éxito',
+                text2: 'Respuestas guardadas correctamente',
+                position: 'bottom',
+                visibilityTime: 3000,
+            });
 
         } catch (error) {
             console.error("Error en handleSubmit:", error);
-            alert("Error en handleSubmit: " + error.message);
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'No se pudieron guardar las respuestas',
+                position: 'bottom',
+                visibilityTime: 3000,
+            });
         }
     };
 
