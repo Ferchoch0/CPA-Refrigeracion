@@ -6,16 +6,26 @@ import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import AppNavigator from "./src/navigation/AppNavigator";
+import { initDatabase } from "./src/services/database";
+import { syncPendingAnswers } from "./src/services/syncService";
 
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
   useEffect(() => {
-    async function loadFonts() {
-      await Font.loadAsync(Ionicons.font);
+    async function loadResources() {
+      await Promise.all([
+        Font.loadAsync(Ionicons.font),
+        initDatabase(),
+      ]);
       setFontsLoaded(true);
+
+      // Intentar sincronizar respuestas pendientes en background
+      syncPendingAnswers().catch(err =>
+        console.log('Auto-sync pendientes omitido:', err.message)
+      );
     }
-    loadFonts();
+    loadResources();
   }, []);
 
   if (!fontsLoaded) {

@@ -20,6 +20,13 @@ import {
     getImageUrl,
     saveAnswers,
 } from "../services/equipmentService";
+import {
+    getLocalQuestions,
+    getLocalAnswers,
+    savePendingAnswer,
+    getQuestionCategoriesByEquipmentId,
+
+} from "../services/database";
 
 
 function AnswersForm() {
@@ -43,6 +50,7 @@ function AnswersForm() {
     const fabRemoveScale = useRef(new Animated.Value(1)).current;
 
     const [serverImages, setServerImages] = useState({});
+    const [isOffline, setIsOffline] = useState(false);
 
     useEffect(() => {
         const fetchFields = async () => {
@@ -53,30 +61,53 @@ function AnswersForm() {
 
                 if (data.error) {
                     console.error("Error del servidor:", data.error);
-                    setFields([]);
-                    setAnswers({});
-                    Toast.show({
-                        type: 'error',
-                        text1: 'Error',
-                        text2: data.error,
-                        position: 'bottom',
-                        visibilityTime: 3000,
-                    });
+                    // Fallback a SQLite
+                    await loadFromSQLite();
                 } else {
                     setFields(data.questions || []);
                     setAnswers(data.answers || {});
                 }
             } catch (error) {
-                console.error("Error en fetch:", error);
+                console.log("Sin conexión, cargando preguntas desde SQLite...");
+                await loadFromSQLite();
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const loadFromSQLite = async () => {
+            try {
+                console.log("📂 Cargando desde SQLite - categoryId:", categoryId, "typeEquipId:", typeEquipId, "equipmentId:", equipmentId);
+                const localQuestions = await getLocalQuestions(categoryId, typeEquipId, equipmentId);
+                const localAnswers = await getLocalAnswers(equipmentId);
+                console.log("📂 Preguntas locales encontradas:", localQuestions.length);
+                console.log("📂 Respuestas locales encontradas:", Object.keys(localAnswers).length);
+
+                // --- DIAGNÓSTICO TEMPORAL: ver TODO lo que hay en la tabla questions ---
+                const { getDatabase } = require('../services/database');
+                const _db = getDatabase();
+                const allForEquip = await _db.getAllAsync(
+                    'SELECT field_equip_id, category_id, type_equip_id, name FROM questions WHERE category_id = ?',
+                    [categoryId]
+                );
+                console.log("🔍 questions para category_id=" + categoryId + ":", JSON.stringify(allForEquip));
+                const totalCount = await _db.getFirstAsync('SELECT COUNT(*) as cnt FROM questions');
+                console.log("🔍 Total de filas en tabla questions:", totalCount?.cnt);
+                // --- FIN DIAGNÓSTICO ---
+
+                setFields(localQuestions);
+                setAnswers(localAnswers);
+            } catch (dbErr) {
+                console.error("Error cargando datos locales:", dbErr);
+                setFields([]);
+                setAnswers({});
                 Toast.show({
                     type: 'error',
-                    text1: 'Error de conexión',
-                    text2: 'No se pudieron cargar los datos',
+                    text1: 'Error',
+                    text2: 'No se pudieron cargar los datos locales',
                     position: 'bottom',
                     visibilityTime: 3000,
                 });
-            } finally {
-                setLoading(false);
             }
         };
 
@@ -91,9 +122,11 @@ function AnswersForm() {
                         grouped[fieldId].push(img.name);
                     });
                     setServerImages(grouped);
+                    setIsOffline(false);
                 }
             } catch (err) {
                 setServerImages({});
+                setIsOffline(true);
             }
         };
 
@@ -232,18 +265,35 @@ function AnswersForm() {
                 });
             }
 
-            const response = await saveAnswers(formData);
-
-            const text = await response.text();
-            console.log("=== RESPUESTA DEL SERVIDOR (TEXTO CRUDO) ===");
-            console.log(text);
-            Toast.show({
-                type: 'success',
-                text1: 'Éxito',
-                text2: 'Respuestas guardadas correctamente',
-                position: 'bottom',
-                visibilityTime: 3000,
-            });
+            try {
+                const response = await saveAnswers(formData);
+                const text = await response.text();
+                console.log("=== RESPUESTA DEL SERVIDOR (TEXTO CRUDO) ===");
+                console.log(text);
+                Toast.show({
+                    type: 'success',
+                    text1: 'Éxito',
+                    text2: 'Respuestas guardadas correctamente',
+                    position: 'bottom',
+                    visibilityTime: 3000,
+                });
+            } catch (networkError) {
+                // Sin conexión → guardar en cola local
+                console.log("Sin conexión, guardando respuestas localmente...");
+                await savePendingAnswer({
+                    equipment_id: equipmentId,
+                    user_id: userId,
+                    answers: answers,
+                    files: files,
+                });
+                Toast.show({
+                    type: 'info',
+                    text1: 'Guardado localmente',
+                    text2: 'Se sincronizará automáticamente al volver a tener internet',
+                    position: 'bottom',
+                    visibilityTime: 4000,
+                });
+            }
 
         } catch (error) {
             console.error("Error en handleSubmit:", error);
@@ -455,8 +505,17 @@ function AnswersForm() {
                                             </TouchableOpacity>
                                         ))}
 
-                                        {/* Imágenes del SERVIDOR */}
-                                        {(
+                                        {/* Imágenes del SERVIDOR o mensaje offline */}
+                                        {isOffline ? (
+                                            (files[field.field_equip_id] || []).length === 0 && (
+                                                <View style={styles.offlineBanner}>
+                                                    <Ionicons name="cloud-offline-outline" size={18} color="#e67e22" style={{ marginRight: 8 }} />
+                                                    <Text style={styles.offlineBannerText}>
+                                                        La galería no está disponible sin acceso a internet
+                                                    </Text>
+                                                </View>
+                                            )
+                                        ) : (
                                             (serverImages[field.field_equip_id] || [])
                                                 .concat(field.field_equip_id === fields.find(f => f.fields_type === "file")?.field_equip_id ? (serverImages["default"] || []) : [])
                                         ).map((imgName, idx) => {
@@ -686,7 +745,14 @@ function AnswersHeader() {
                     setCategoryName(cat ? cat.name : "");
                 }
             } catch (e) {
-                setCategoryName("");
+                // Fallback a SQLite para nombre de categoría
+                try {
+                    const localCats = await getQuestionCategoriesByEquipmentId(equipmentId);
+                    const cat = localCats.find(c => c.field_category_id == categoryId);
+                    setCategoryName(cat ? cat.name : "");
+                } catch (dbErr) {
+                    setCategoryName("");
+                }
             }
         };
         fetchCategoryName();
@@ -1031,5 +1097,20 @@ const styles = StyleSheet.create({
         elevation: 3,
         shadowColor: "#000",
         shadowOpacity: 0.12,
+    },
+    offlineBanner: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#fff8f0",
+        borderRadius: 10,
+        padding: 12,
+        borderLeftWidth: 3,
+        borderLeftColor: "#e67e22",
+        width: "100%",
+    },
+    offlineBannerText: {
+        fontSize: 13,
+        color: "#666",
+        flex: 1,
     },
 });

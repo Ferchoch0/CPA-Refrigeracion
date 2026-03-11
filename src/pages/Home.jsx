@@ -1,13 +1,15 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList, ActivityIndicator } from "react-native";
 import Calendar from "../components/Calendar";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 import useAuth from "../hooks/useAuth";
 import useClients from "../hooks/useClients";
 import { getProfilePhotoUrl } from "../services/profileService";
+import { getPendingCount, syncPendingAnswers } from "../services/syncService";
 
 // ─── Sub-componentes locales ────────────────────────────────
 
@@ -27,28 +29,34 @@ const HomeNavbar = () => {
     );
 };
 
-const Header = ({ user }) => (
-    <View style={styles.header}>
-        <View style={{ flex: 1, marginRight: 12 }}>
-            <Text
-                style={styles.greeting}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-            >
-                Hola, {user?.name || "Usuario"}
-            </Text>
-            <Text style={styles.welcome}>Bienvenido de nuevo</Text>
+const Header = ({ user }) => {
+    const [imageError, setImageError] = useState(false);
+
+    return (
+        <View style={styles.header}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+                <Text
+                    style={styles.greeting}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                >
+                    Hola, {user?.name || "Usuario"}
+                </Text>
+                <Text style={styles.welcome}>Bienvenido de nuevo</Text>
+            </View>
+
+            <Image
+                source={
+                    user?.photo && !imageError
+                        ? { uri: getProfilePhotoUrl(user.photo) }
+                        : require("../../assets/icon-profile.png")
+                }
+                style={styles.avatar}
+                onError={() => setImageError(true)}
+            />
         </View>
-        <Image
-            source={
-                user?.photo
-                    ? { uri: getProfilePhotoUrl(user.photo) }
-                    : require("../../assets/image-profile.jpg")
-            }
-            style={styles.avatar}
-        />
-    </View>
-);
+    );
+};
 
 const SearchBar = ({ data, onFilter }) => {
     const [search, setSearch] = useState("");
@@ -102,12 +110,79 @@ const ClientItem = ({ item, navigation }) => (
     </TouchableOpacity>
 );
 
+const PendingBanner = ({ count, onUpload, uploading }) => {
+    if (count === 0) return null;
+
+    return (
+        <View style={styles.pendingCard}>
+            <View style={styles.pendingIconRow}>
+                <Ionicons name="cloud-upload-outline" size={24} color="#e67e22" />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.pendingTitle}>Datos pendientes</Text>
+                    <Text style={styles.pendingText}>
+                        Tenés {count} {count === 1 ? "formulario" : "formularios"} sin sincronizar
+                    </Text>
+                </View>
+            </View>
+            <TouchableOpacity
+                style={[styles.pendingBtn, uploading && { opacity: 0.6 }]}
+                onPress={onUpload}
+                disabled={uploading}
+            >
+                {uploading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                    <Text style={styles.pendingBtnText}>Subir ahora</Text>
+                )}
+            </TouchableOpacity>
+        </View>
+    );
+};
+
 // ─── Pantalla principal ─────────────────────────────────────
 
 export default function HomeScreen() {
     const { user } = useAuth();
     const { allClients, filteredClients, setFilteredClients } = useClients(user?.id);
     const navigation = useNavigation();
+    const isFocused = useIsFocused();
+
+    const [pendingCount, setPendingCount] = useState(0);
+    const [uploading, setUploading] = useState(false);
+
+    // Verificar pendientes cada vez que la pantalla recibe foco
+    useEffect(() => {
+        if (isFocused) {
+            getPendingCount()
+                .then(setPendingCount)
+                .catch(() => setPendingCount(0));
+        }
+    }, [isFocused]);
+
+    const handleUploadPending = async () => {
+        setUploading(true);
+        try {
+            const result = await syncPendingAnswers((current, total) => {
+                // Progreso opcional — se podría mostrar en el banner
+            });
+            setPendingCount(0);
+            Toast.show({
+                type: "success",
+                text1: "Sincronización completa",
+                text2: `Se subieron ${result.uploaded} de ${result.total} formularios`,
+                position: "bottom",
+            });
+        } catch (err) {
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "No se pudieron subir los datos. Verificá tu conexión",
+                position: "bottom",
+            });
+        } finally {
+            setUploading(false);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -120,6 +195,11 @@ export default function HomeScreen() {
                         <Header user={user} />
                         <Calendar />
                         <View style={styles.mainContent}>
+                            <PendingBanner
+                                count={pendingCount}
+                                onUpload={handleUploadPending}
+                                uploading={uploading}
+                            />
                             <SearchBar data={allClients} onFilter={setFilteredClients} />
 
                             <View style={styles.containerClientTitle}>
@@ -266,5 +346,46 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginRight: 10,
+    },
+
+    // Pending banner
+    pendingCard: {
+        backgroundColor: "#fff8f0",
+        borderRadius: 14,
+        padding: 16,
+        marginBottom: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: "#e67e22",
+        shadowColor: "#000",
+        shadowOpacity: 0.06,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    pendingIconRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    pendingTitle: {
+        fontSize: 15,
+        fontWeight: "bold",
+        color: "#333",
+    },
+    pendingText: {
+        fontSize: 13,
+        color: "#888",
+        marginTop: 2,
+    },
+    pendingBtn: {
+        backgroundColor: "#003366",
+        borderRadius: 10,
+        paddingVertical: 10,
+        alignItems: "center",
+    },
+    pendingBtnText: {
+        color: "#fff",
+        fontSize: 14,
+        fontWeight: "bold",
     },
 });

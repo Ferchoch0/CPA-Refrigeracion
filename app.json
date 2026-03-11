@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "CPA-Refrigeracion",
-    "slug": "cpa-refrigeracion-ffdelvalle",
-    "owner": "ffdelvalle",
+    "slug": "cpa-refrigeracion-otterexpo",
+    "owner": "otterexpo",
     "version": "1.0.0",
     "icon": "./assets/logo2.png",
     "platforms": [
@@ -15,12 +15,13 @@
     "extra": {
       "API_URL": "https://api.desinfeccionescpa.com.ar/api/controller",
       "eas": {
-        "projectId": "b2a304af-5ab2-4e62-8e8b-8f51a67f79ce"
+        "projectId": "300792a4-04ad-482b-bd04-7f6d60ab8985"
       }
     },
     "plugins": [
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      "expo-sqlite"
     ],
     "assetBundlePatterns": [
       "**/*",

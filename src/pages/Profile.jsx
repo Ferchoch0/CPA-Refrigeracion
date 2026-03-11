@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import useAuth from "../hooks/useAuth";
 import { uploadProfilePhoto, getProfilePhotoUrl } from "../services/profileService";
@@ -14,6 +15,7 @@ const { height } = Dimensions.get("window");
 export default function Profile() {
   const { user, setUser } = useAuth();
   const navigation = useNavigation();
+  const [imageError, setImageError] = useState(false);
 
   const handleChangePhoto = async () => {
     try {
@@ -67,6 +69,24 @@ export default function Profile() {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      "Cerrar Sesión",
+      "¿Estás seguro de que deseas cerrar sesión?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Salir",
+          style: "destructive",
+          onPress: async () => {
+            await AsyncStorage.removeItem("user");
+            navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+          }
+        }
+      ]
+    );
+  };
+
   if (!user) {
     return (
       <View style={styles.container}>
@@ -90,8 +110,13 @@ export default function Profile() {
 
         <View style={styles.photoWrapper}>
           <Image
-            source={{ uri: getProfilePhotoUrl(user.photo) }}
+            source={
+              !user.photo || imageError
+                ? require("../../assets/icon-profile.png")
+                : { uri: getProfilePhotoUrl(user.photo) }
+            }
             style={styles.photo}
+            onError={() => setImageError(true)}
           />
           <TouchableOpacity style={styles.cameraIcon} onPress={handleChangePhoto}>
             <Ionicons name="camera" size={26} color="#fff" />
@@ -137,6 +162,11 @@ export default function Profile() {
             <Text style={styles.value}>{user.phone}</Text>
           </View>
         </View>
+
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={22} color="#fff" style={styles.logoutIcon} />
+          <Text style={styles.logoutText}>Cerrar Sesión</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -182,7 +212,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 1000,
-    backgroundColor: "#2e2cf7",
+    backgroundColor: "#ffffffff",
     borderWidth: 5,
     borderColor: "#ffffffff",
   },
@@ -215,4 +245,15 @@ const styles = StyleSheet.create({
     marginVertical: 2,
     marginLeft: 34,
   },
+  logoutBtn: {
+    backgroundColor: "#d9534f",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 30,
+  },
+  logoutIcon: { marginRight: 8 },
+  logoutText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });

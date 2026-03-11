@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getEquipmentsByClient } from '../services/equipmentService';
+import { getEquipmentsByClientId } from '../services/database';
 
 /**
  * Agrupa una lista plana de equipos por código.
@@ -19,6 +20,7 @@ function agruparEquipos(equipos) {
 
 /**
  * Hook para cargar, agrupar y filtrar equipos de un cliente.
+ * Con internet: obtiene de la API. Sin internet: obtiene de SQLite local.
  *
  * @param {number|string} clientId
  * @returns {{ equipos, filteredEquipos, loading, search, estadoFiltro, handleSearch, handleFiltrarEstado, refetch, getTotales }}
@@ -41,13 +43,27 @@ export default function useEquipments(clientId) {
                 setFilteredEquipos(agrupados);
             } else {
                 console.error('Error:', data.error);
-                setEquipos([]);
-                setFilteredEquipos([]);
+                // Intentar cargar desde SQLite
+                await loadFromSQLite();
             }
         } catch (err) {
-            console.error('Error de red:', err);
+            console.log('Sin conexión, cargando equipos desde SQLite...');
+            await loadFromSQLite();
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadFromSQLite = async () => {
+        try {
+            const localData = await getEquipmentsByClientId(clientId);
+            const agrupados = agruparEquipos(localData);
+            setEquipos(agrupados);
+            setFilteredEquipos(agrupados);
+        } catch (dbErr) {
+            console.error('Error cargando equipos locales:', dbErr);
+            setEquipos([]);
+            setFilteredEquipos([]);
         }
     };
 
