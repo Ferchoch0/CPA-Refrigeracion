@@ -1,5 +1,5 @@
 // src/pages/Equipos.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
-  Platform,
   Image,
   Modal,
 } from "react-native";
@@ -15,72 +14,65 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import TipoEquipoScreen from "../components/TipoEquipo";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Constants from 'expo-constants';
 import Toast from "react-native-toast-message";
 
+import useEquipments from "../hooks/useEquipments";
+import { updateEquipmentStatus } from "../services/equipmentService";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
+// Estados posibles
+const estadosDisponibles = [
+  { label: "Activo", color: "#2ecc40", textColor: "#fff" },
+  { label: "Activo: Requiere revisión", color: "#ffb300", textColor: "#fff" },
+  { label: "Inactivo", color: "#e74c3c", textColor: "#fff" },
+  { label: "Dado de baja", color: "#222", textColor: "#fff" },
+];
+
+const getEstadoStyle = (estado) => {
+  switch (estado) {
+    case "Activo":
+      return { backgroundColor: "#2ecc40" };
+    case "Activo: Requiere revisión":
+      return { backgroundColor: "#ffb300" };
+    case "Inactivo":
+      return { backgroundColor: "#e74c3c" };
+    case "Dado de baja":
+      return { backgroundColor: "#222" };
+    default:
+      return { backgroundColor: "#ccc" };
+  }
+};
 
 export default function EquiposScreen({ route, navigation: propNavigation }) {
-  const { clientId, clientName } = route.params; // Añadir clientName a los parámetros
+  const { clientId, clientName } = route.params;
   const navigation = useNavigation();
-  const [search, setSearch] = useState("");
-  const [equipos, setEquipos] = useState([]);
-  const [filteredEquipos, setFilteredEquipos] = useState([]); // lista filtrada
-  const [estadoFiltro, setEstadoFiltro] = useState("Todos");
+
+  const {
+    filteredEquipos,
+    loading,
+    search,
+    estadoFiltro,
+    handleSearch,
+    handleFiltrarEstado,
+    refetch,
+    getTotales,
+  } = useEquipments(clientId);
+
   const [modalVisible, setModalVisible] = useState(false);
-  // Estado para cambiar estado de equipo
   const [modalUnidadVisible, setModalUnidadVisible] = useState(false);
   const [modalEstadoVisible, setModalEstadoVisible] = useState(false);
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const [nuevoEstado, setNuevoEstado] = useState("");
-  // Estados posibles
-  const estadosDisponibles = [
-    {
-      label: "Activo",
-      color: "#2ecc40",
-      textColor: "#fff"
-    },
-    {
-      label: "Activo: Requiere revisión",
-      color: "#ffb300",
-      textColor: "#fff"
-    },
-    {
-      label: "Inactivo",
-      color: "#e74c3c",
-      textColor: "#fff"
-    },
-    {
-      label: "Dado de baja",
-      color: "#222",
-      textColor: "#fff"
-    },
-  ];
+
+  const totales = getTotales();
 
   // Cambiar estado del equipo
   const cambiarEstadoEquipo = async () => {
     if (!equipoSeleccionado) return;
     try {
-      console.log("Datos enviados:", {
-        equipment_id: equipoSeleccionado.equipment_id,
-        status: nuevoEstado,
-      });
-
-      const response = await fetch(`${API_URL}/equipmentsController.php`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "updateEquipmentStatus",
-          equipment_id: equipoSeleccionado.equipment_id,
-          status: nuevoEstado,
-        }),
-      });
-
-      const data = await response.json();
+      const data = await updateEquipmentStatus(equipoSeleccionado.equipment_id, nuevoEstado);
 
       if (data.success) {
-        await fetchEquipos();
+        await refetch();
         setModalEstadoVisible(false);
 
         Toast.show({
@@ -106,118 +98,26 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
     }
   };
 
-  const [loading, setLoading] = useState(true);
-
-  const fetchEquipos = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${API_URL}/equipmentsController.php?action=getEquipmentsByClient&client_id=${clientId}`
-      );
-      const data = await response.json();
-
-      if (!data.error) {
-        const agrupados = agruparEquipos(data);
-        setEquipos(agrupados);
-        setFilteredEquipos(agrupados);
-      } else if (data.error) {
-        console.error("Error:", data.error);
-        setEquipos([]);
-        setFilteredEquipos([]);
-      } else {
-        setEquipos(data);
-        setFilteredEquipos(data);
-      }
-    } catch (err) {
-      console.error("Error de red:", err);
-    } finally {
-      setLoading(false);
-    }
+  const handleContinue = async () => {
+    setModalVisible(false);
+    await refetch();
   };
-
-  const agruparEquipos = (equipos) => {
-    const mapa = {};
-
-    equipos.forEach(eq => {
-      const key = eq.code; // mismo código = mismo equipo físico
-      if (!mapa[key]) {
-        mapa[key] = { ...eq, unidades: [] };
-      }
-      mapa[key].unidades.push(eq);
-    });
-
-    return Object.values(mapa);
-  };
-
-  useEffect(() => {
-    fetchEquipos();
-  }, []);
-
-  const handleSearch = (text, estado = estadoFiltro) => {
-    setSearch(text);
-    let filtered = [...equipos];
-
-    if (estado !== "Todos") {
-      filtered = filtered.filter((eq) => eq.status === estado);
-    }
-    if (text.trim() !== "") {
-      filtered = filtered.filter((eq) =>
-        eq.name.toLowerCase().includes(text.toLowerCase())
-      );
-    }
-    setFilteredEquipos(filtered);
-  };
-
-  const handleFiltrarEstado = (estado) => {
-    setEstadoFiltro(estado);
-    handleSearch(search, estado);
-  };
-
-  const getEstadoStyle = (estado) => {
-    switch (estado) {
-      case "Activo":
-        return { backgroundColor: "#2ecc40" };
-      case "Activo: Requiere revisión":
-        return { backgroundColor: "#ffb300" };
-      case "Inactivo":
-        return { backgroundColor: "#e74c3c" };
-      case "Dado de baja":
-        return { backgroundColor: "#222" };
-      default:
-        return { backgroundColor: "#ccc" };
-    }
-  };
-
-  const getTotales = () => {
-    const total = equipos.length;
-    const activos = equipos.filter((e) => e.status === "Activo").length;
-    const revision = equipos.filter(
-      (e) => e.status === "Activo: Requiere revisión"
-    ).length;
-    const inactivos = equipos.filter((e) => e.status === "Inactivo").length;
-    const baja = equipos.filter((e) => e.status === "Dado de baja").length;
-    return { total, activos, revision, inactivos, baja };
-  };
-
-  const totales = getTotales();
 
   const renderEquipo = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
       onPress={() => {
         if (item.unidades.length > 1) {
-          // abre modal de selección
           setEquipoSeleccionado(item);
           setModalUnidadVisible(true);
         } else {
-          // entra directo
           const unica = item.unidades[0];
           navigation.navigate("FormGeneral", {
             equipmentId: unica.equipment_id,
             typeEquipId: unica.type_equip_id,
             code: unica.code,
             name: unica.name,
-            clientName: clientName, // <-- agregado
+            clientName: clientName,
           });
         }
       }}
@@ -243,12 +143,6 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
     </TouchableOpacity>
   );
 
-  // Recibe los datos seleccionados del modal y navega al formulario
-  const handleContinue = async () => {
-    setModalVisible(false);
-    await fetchEquipos(); // solo refresca lista
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -259,7 +153,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
           >
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <View style={{flex: 1}}>
+          <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>Equipos</Text>
             <Text style={styles.headerSubtitle}>
               Cliente: {route.params.clientName}
@@ -271,7 +165,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
           />
         </View>
       </View>
-      
+
       {/* Cuerpo */}
       <View style={styles.bodyContainer}>
         {/* Barra de totales con filtro por estado */}
@@ -466,7 +360,7 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
                       code: unidad.code,
                       name: unidad.name,
                       placement: unidad.placement ?? null,
-                      clientName: clientName, // <-- agregado
+                      clientName: clientName,
                     });
                   }}
                 >
@@ -602,9 +496,10 @@ export default function EquiposScreen({ route, navigation: propNavigation }) {
 
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#003366",
+  container: {
+    flex: 1, backgroundColor: "#003366",
     paddingTop: 28,
-   },
+  },
 
   header: {
     backgroundColor: "#003366",

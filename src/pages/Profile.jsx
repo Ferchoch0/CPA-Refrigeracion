@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
-import Constants from "expo-constants";
 import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import useAuth from "../hooks/useAuth";
+import { uploadProfilePhoto, getProfilePhotoUrl } from "../services/profileService";
 
-const API_URL = Constants.expoConfig.extra.API_URL;
 const { height } = Dimensions.get("window");
 
 export default function Profile() {
-  const [user, setUser] = useState(null);
+  const { user, setUser } = useAuth();
   const navigation = useNavigation();
+  const [imageError, setImageError] = useState(false);
 
   const handleChangePhoto = async () => {
     try {
@@ -25,7 +26,6 @@ export default function Profile() {
 
       if (result.type === "cancel") return;
 
-      // Normalizar data (por compatibilidad entre SDKs)
       const file = result.assets ? result.assets[0] : result;
       if (!file?.uri) {
         Toast.show({
@@ -36,29 +36,16 @@ export default function Profile() {
         return;
       }
 
-      const formData = new FormData();
-      formData.append("action", "uploadProfilePhoto");
-      formData.append("userId", user.id);
-      formData.append("photo", {
+      const photoFile = {
         uri: file.uri,
         name: file.name || `profile_${user.id}.jpg`,
         type: file.mimeType || "image/jpeg",
-      });
+      };
 
-      const response = await fetch(`${API_URL}/technicalController.php`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
+      const data = await uploadProfilePhoto(user.id, photoFile);
 
       if (data.success && data.filename) {
-        const updatedUser = { ...user, photo: data.filename };
-        setUser(updatedUser);
-        await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
+        await setUser({ ...user, photo: data.filename });
 
         Toast.show({
           type: "success",
@@ -82,19 +69,23 @@ export default function Profile() {
     }
   };
 
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem("user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+  const handleLogout = () => {
+    Alert.alert(
+      "Cerrar Sesión",
+      "¿Estás seguro de que deseas cerrar sesión?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Salir",
+          style: "destructive",
+          onPress: async () => {
+            await AsyncStorage.removeItem("user");
+            navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+          }
         }
-      } catch (error) {
-        console.error("Error al cargar usuario:", error);
-      }
-    };
-    loadUser();
-  }, []);
+      ]
+    );
+  };
 
   if (!user) {
     return (
@@ -119,8 +110,13 @@ export default function Profile() {
 
         <View style={styles.photoWrapper}>
           <Image
-            source={{ uri: `${API_URL}/upload/profile/${user.photo}` }}
+            source={
+              !user.photo || imageError
+                ? require("../../assets/icon-profile.png")
+                : { uri: getProfilePhotoUrl(user.photo) }
+            }
             style={styles.photo}
+            onError={() => setImageError(true)}
           />
           <TouchableOpacity style={styles.cameraIcon} onPress={handleChangePhoto}>
             <Ionicons name="camera" size={26} color="#fff" />
@@ -166,6 +162,11 @@ export default function Profile() {
             <Text style={styles.value}>{user.phone}</Text>
           </View>
         </View>
+
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={22} color="#fff" style={styles.logoutIcon} />
+          <Text style={styles.logoutText}>Cerrar Sesión</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 1000,
-    backgroundColor: "#2e2cf7",
+    backgroundColor: "#ffffffff",
     borderWidth: 5,
     borderColor: "#ffffffff",
   },
@@ -244,4 +245,15 @@ const styles = StyleSheet.create({
     marginVertical: 2,
     marginLeft: 34,
   },
+  logoutBtn: {
+    backgroundColor: "#d9534f",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 30,
+  },
+  logoutIcon: { marginRight: 8 },
+  logoutText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });

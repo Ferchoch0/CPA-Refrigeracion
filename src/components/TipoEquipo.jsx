@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import CustomInput from "./CustomInput";
-import Constants from 'expo-constants';
+import { addEquipment } from '../services/equipmentService';
 import Toast from "react-native-toast-message";
-
-const API_URL = Constants.expoConfig.extra.API_URL;
 
 const tipos = [
   "Split", "Rooftop", "Centrales", "Cassette",
@@ -32,20 +30,7 @@ export default function TipoEquipoScreen({ clientId, onContinue, onCancel }) {
 
       const typeEquipId = typeEquipMap[tipo];
 
-      const response = await fetch(
-        `${API_URL}/equipmentsController.php`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "addEquipment",
-            client_id: clientId,
-            type_equip_id: typeEquipId,
-          }),
-        }
-      );
-
-      const data = await response.json();
+      const data = await addEquipment(clientId, typeEquipId);
       if (data.success) {
         Toast.show({
           type: "success",
