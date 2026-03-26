@@ -10,7 +10,6 @@ session_start();
 require_once '../model/connection.php';
 require_once '../model/equipmentsModel.php';
 
-header('Content-Type: application/json; charset=utf-8');
 
 $equipmentsModel = new EquipmentsModel($conn);
 
@@ -27,6 +26,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $action = $data['action'] ?? '';
+
+    
+if (
+    isset($_GET['action']) && $_GET['action'] === 'getImage' ||
+    isset($data['action']) && $data['action'] === 'getImage'
+) {
+
+} else {
+    header('Content-Type: application/json; charset=utf-8');
+}
 
     switch ($action) {
         case 'getEquipmentsByClient':
@@ -67,70 +76,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
-        case 'saveAnswers':
-            header('Content-Type: application/json; charset=utf-8');
+case 'saveAnswers':
+    if (!isset($_POST['equipment_id'], $_POST['user_id'])) {
+        echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
+        exit;
+    }
 
-            // Verifico si vino como formulario con imagen
-            if (!empty($_POST) || !empty($_FILES)) {
-                if (!isset($_POST['equipment_id'], $_POST['user_id'])) {
-                    echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
-                    exit;
+    $equipmentId = intval($_POST['equipment_id']);
+    $userId = intval($_POST['user_id']);
+    $answers = [];
+
+    // 🔹 Procesar respuestas de texto, número, select, etc.
+    foreach ($_POST as $key => $val) {
+        if (strpos($key, "answer_") === 0) {
+            $fieldId = str_replace("answer_", "", $key);
+            $answers[$fieldId] = $val;
+        }
+    }
+
+    // 🔹 Procesar imágenes múltiples
+    $imageCount = 0;
+    $imagesFieldId = null;
+
+    if (!empty($_FILES)) {
+        foreach ($_FILES as $key => $file) {
+            if ($file['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = __DIR__ . "/upload/equip/";
+                if (!file_exists($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
                 }
 
-                $equipmentId = intval($_POST['equipment_id']);
-                $userId = intval($_POST['user_id']);
-                $answers = [];
+                $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $filename = "equip{$equipmentId}_" . uniqid() . "." . strtolower($ext);
+                $targetPath = $uploadDir . $filename;
 
-                // Procesar respuestas normales
-                foreach ($_POST as $key => $val) {
-                    if (strpos($key, "answer_") === 0) {
-                        $fieldId = str_replace("answer_", "", $key);
-                        $answers[$fieldId] = $val;
-                    }
+                if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                    // Guardar en tabla images
+                    $stmt = $conn->prepare("INSERT INTO images (equipment_id, name, date) VALUES (?, ?, NOW())");
+                    $stmt->bind_param("is", $equipmentId, $filename);
+                    $stmt->execute();
+                    $stmt->close();
+
+                    $imageCount++;
+                    // Tomamos el field id (file_XX)
+                    $imagesFieldId = str_replace("file_", "", $key);
                 }
-
-                // Procesar archivos como respuestas también
-                // Procesar archivos (múltiples imágenes)
-                $imageCount = 0;
-                if (!empty($_FILES)) {
-                    foreach ($_FILES as $key => $file) {
-                        if ($file['error'] === UPLOAD_ERR_OK) {
-                            $uploadDir = __DIR__ . "/upload/equip/";
-                            if (!file_exists($uploadDir)) {
-                                mkdir($uploadDir, 0777, true);
-                            }
-
-                            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-                            $filename = uniqid("equip{$equipmentId}_") . "." . strtolower($ext);
-                            $targetPath = $uploadDir . $filename;
-
-                            if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-                                // Registrar imagen en base de datos
-                                $stmt = $conn->prepare("INSERT INTO images (equipment_id, name, date) VALUES (?, ?, NOW())");
-                                $stmt->bind_param("is", $equipmentId, $filename);
-                                $stmt->execute();
-                                $stmt->close();
-
-                                $imageCount++;
-                            } else {
-                                echo json_encode(['error' => 'ERR_UPLOAD_FAILED']);
-                                exit;
-                            }
-                        }
-                    }
-                }
-
-                $result = $equipmentsModel->saveAnswers($equipmentId, $answers, $userId);
-                echo json_encode($result);
-                exit;
             }
+        }
+    }
 
-            $data = json_decode(file_get_contents('php://input'), true);
-            if (!$data) {
-                echo json_encode(['error' => 'ERR_NO_DATA']);
-                exit;
-            }
-            break;
+    // 🔹 Si se cargaron imágenes, guardamos un texto en las respuestas
+    if ($imageCount > 0 && $imagesFieldId) {
+        $answers[$imagesFieldId] = "{$imageCount} imagen(es) cargada(s)";
+    }
+
+    // 🔹 Guardar respuestas (usa el modelo)
+    $result = $equipmentsModel->saveAnswers($equipmentId, $answers, $userId);
+
+    echo json_encode($result);
+    exit;
 
         case 'updateQuestion':
             if (isset($data['id'], $data['name'], $data['type'], $data['description'], $data['user_id'])) {
@@ -189,6 +193,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode(['error' => 'ERR_MISSING_PARAMETERS']);
             }
             break;
+
+        case 'updateEquipment':
+            if(empty($data['equipment_id'])) {
+                echo json_encode(['error' => 'ERR_MISSING_ID']);
+                exit;
+            }
+
+            $id = $data['equipment_id'];
+            $userId = $data['user_id'];
+            $respuestasForm = $data['respuestas_formulario'];
+
+            $result = $equipmentsModel->updateEquipmentAnswers($id, $userId, $respuestasForm);
+            echo json_encode($result);
+            break;
+
+        case 'deleteQuestion': 
+            if(isset($data['id'])){
+                $questionId = $data['id'];
+                $userId = $data['user_id'];
+
+                $result = $equipmentsModel->deleteQuestion($questionId, $userId);
+                if ($result) {
+                    echo json_encode($result);
+                } else {
+                    echo json_encode(['error' => 'ERR_DB_UPDATE']);
+                }
+            } else{
+                echo json_encode(['error' => 'ERR_DELETE_FAILED']);
+            }
+            break;
+
+        case 'deleteImage':
+            if(isset($data['name'])){
+                $image = $data['name'];
+
+                $result = $equipmentsModel->deleteImage($image);
+            if ($result) {
+                    echo json_encode($result);
+                } else {
+                    echo json_encode(['error' => 'ERR_DB_UPDATE']);
+                    
+                }
+            } else{
+                echo json_encode(['error' => 'ERR_DELETE_FAILED']);
+            }
+            break;
+
         default:
             echo json_encode(['error' => 'ERR_UNKNOWN_ACTION']);
             break;
@@ -196,6 +247,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $action = $_GET['action'] ?? '';
+
+
+if (
+    isset($_GET['action']) && $_GET['action'] === 'getImage' ||
+    isset($data['action']) && $data['action'] === 'getImage'
+) {
+
+} else {
+    header('Content-Type: application/json; charset=utf-8');
+}
 
     switch ($action) {
         case 'getEquipmentsByClient':
@@ -207,6 +268,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode(['error' => 'ERR_MISSING_CLIENT_ID']);
             }
             break;
+
+        case 'getImagesByEquipmentId':
+    if (isset($_GET['equipment_id'])) {
+        $equipmentId = intval($_GET['equipment_id']);
+        $result = $equipmentsModel->getImagesByEquipmentId($equipmentId);
+        echo json_encode($result);
+    } else {
+        http_response_code(400);
+        echo json_encode(['error' => "Parámetro 'equipment_id' requerido"]);
+    }
+    break;
 
         case 'getEquipmentsByClientCompleted':
             if (isset($_GET['client_id'])) {
@@ -238,7 +310,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 if (isset($_GET['code'])) {
                     $code = $_GET['code'];
-                    $result = $equipmentsModel->getByCode($code);
+                    $part = $_GET['part'] ?? null;
+                    $clientId = $_GET['clientId'] ?? null;
+                    $result = $equipmentsModel->getByCode($code, $part, $clientId);
                     echo json_encode($result);
                 } else {
                     echo json_encode(['error' => 'ERR_CODE_REQUIRED']);
@@ -262,6 +336,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
+case 'getImage':
+    header_remove();
+    if (isset($_GET['name'])) {
+        $imagePath = 'upload/equip/' . basename($_GET['name']);
+        if (file_exists($imagePath)) {
+            $mime = mime_content_type($imagePath);
+            header("Content-Type: $mime");
+            header('Content-Length: ' . filesize($imagePath));
+            readfile($imagePath);
+        } else {
+            http_response_code(404);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "Imagen no encontrada";
+        }
+    } else {
+        http_response_code(400);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo "Parámetro 'name' requerido";
+    }
+    exit;
+
 
         case 'getQuestionsByType':
             try {
@@ -280,6 +375,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode(['error' => $e->getMessage()]);
             }
             break;
+
+        case 'getTask':
+    try {
+        if (isset($_GET['equipment_id'])) {
+            $equipment_id = $_GET['equipment_id'];
+            $result = $equipmentsModel->getTask($equipment_id);
+            echo json_encode($result);
+        } else {
+            echo json_encode(['error' => 'ERR_EQUIPMENT_ID_REQUIRED']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    break;
 
         case 'getQuestions':
             try {
@@ -323,26 +432,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $equipmentsModel->getEquipTypes();
             echo json_encode($result);
             break;
-
-        case 'getImage':
-            if (isset($_GET['name'])) {
-                $imagePath = __DIR__ . '/upload/equip/' . basename($_GET['name']);
-                if (file_exists($imagePath)) {
-                    $mime = mime_content_type($imagePath);
-                    header("Content-Type: $mime");
-                    header('Content-Length: ' . filesize($imagePath));
-                    readfile($imagePath);
-                } else {
-                    http_response_code(404);
-                    header('Content-Type: text/plain; charset=utf-8');
-                    echo "Imagen no encontrada";
-                }
-            } else {
-                http_response_code(400);
-                header('Content-Type: text/plain; charset=utf-8');
-                echo "Parámetro 'name' requerido";
-            }
-            exit;
 
 
         default:

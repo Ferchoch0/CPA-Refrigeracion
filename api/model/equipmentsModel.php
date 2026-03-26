@@ -763,10 +763,24 @@ class EquipmentsModel
         }
     }
 
-    public function updateStatus($equipment_id, $status)
+ public function updateStatus($equipment_id, $status)
     {
-        $stmt = $this->conn->prepare("UPDATE equipments SET status = ? WHERE equipment_id = ?");
-        $stmt->bind_param("si", $status, $equipment_id);
+        $stmtSelect = $this->conn->prepare("SELECT code, client_id FROM equipments WHERE equipment_id = ?");
+        $stmtSelect->bind_param("i", $equipment_id);
+        $stmtSelect->execute();
+        $result = $stmtSelect->get_result();
+        $equipData = $result->fetch_assoc();
+        $stmtSelect->close();
+
+        if (!$equipData) {
+            return ['error' => 'ERR_EQUIP_NOT_FOUND'];
+        }
+
+        $code = $equipData['code'];
+        $client_id = $equipData['client_id'];
+
+        $stmt = $this->conn->prepare("UPDATE equipments SET status = ? WHERE code = ? AND client_id = ?");
+        $stmt->bind_param("ssi", $status, $code, $client_id);
 
         if (!$stmt->execute()) {
             return ['error' => 'ERR_UPDATE_FAILED'];
