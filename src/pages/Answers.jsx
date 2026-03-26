@@ -53,6 +53,39 @@ function AnswersForm() {
     const [isOffline, setIsOffline] = useState(false);
 
     useEffect(() => {
+        const applyPendingAnswers = async (baseAnswers, baseFiles) => {
+            try {
+                const { getPendingAnswers } = require('../services/database');
+                const pending = await getPendingAnswers();
+                const myPending = pending.filter(p => p.equipment_id == equipmentId);
+                
+                let mergedAnswers = { ...baseAnswers };
+                let mergedFiles = { ...baseFiles };
+                
+                myPending.forEach(p => {
+                    if (p.answers_json) {
+                        try {
+                            const pAns = JSON.parse(p.answers_json);
+                            mergedAnswers = { ...mergedAnswers, ...pAns };
+                        } catch (e) {}
+                    }
+                    if (p.files_json) {
+                        try {
+                            const pFiles = JSON.parse(p.files_json);
+                            for (const [fieldId, fileList] of Object.entries(pFiles)) {
+                                if (!mergedFiles[fieldId]) mergedFiles[fieldId] = [];
+                                mergedFiles[fieldId] = [...mergedFiles[fieldId], ...fileList];
+                            }
+                        } catch(e) {}
+                    }
+                });
+                return { mergedAnswers, mergedFiles };
+            } catch(e) {
+                console.log("Error aplicando respuestas pendientes:", e);
+                return { mergedAnswers: baseAnswers, mergedFiles: baseFiles };
+            }
+        };
+
         const fetchFields = async () => {
             try {
                 console.log("Buscando respuestas para equipmentId:", equipmentId);
@@ -65,7 +98,12 @@ function AnswersForm() {
                     await loadFromSQLite();
                 } else {
                     setFields(data.questions || []);
-                    setAnswers(data.answers || {});
+                    
+                    const { mergedAnswers, mergedFiles } = await applyPendingAnswers(data.answers || {}, {});
+                    setAnswers(mergedAnswers);
+                    if (Object.keys(mergedFiles).length > 0) {
+                        setFiles(mergedFiles);
+                    }
                 }
             } catch (error) {
                 console.log("Sin conexión, cargando preguntas desde SQLite...");
@@ -95,8 +133,13 @@ function AnswersForm() {
                 console.log("🔍 Total de filas en tabla questions:", totalCount?.cnt);
                 // --- FIN DIAGNÓSTICO ---
 
+                const { mergedAnswers, mergedFiles } = await applyPendingAnswers(localAnswers, {});
+
                 setFields(localQuestions);
-                setAnswers(localAnswers);
+                setAnswers(mergedAnswers);
+                if (Object.keys(mergedFiles).length > 0) {
+                    setFiles(mergedFiles);
+                }
             } catch (dbErr) {
                 console.error("Error cargando datos locales:", dbErr);
                 setFields([]);
