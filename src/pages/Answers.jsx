@@ -289,16 +289,29 @@ function AnswersForm() {
             const user = JSON.parse(storedUser);
             const userId = user.id;
 
+            const filteredAnswers = {};
+            const filteredFiles = {};
+
+            fields.forEach(field => {
+                const fieldId = String(field.field_equip_id);
+                if (answers[fieldId] !== undefined) {
+                    filteredAnswers[fieldId] = answers[fieldId];
+                }
+                if (files[fieldId] !== undefined) {
+                    filteredFiles[fieldId] = files[fieldId];
+                }
+            });
+
             const formData = new FormData();
             formData.append("action", "saveAnswers");
             formData.append("equipment_id", equipmentId);
             formData.append("user_id", userId);
 
-            for (const [fieldId, value] of Object.entries(answers)) {
+            for (const [fieldId, value] of Object.entries(filteredAnswers)) {
                 formData.append(`answer_${fieldId}`, value ?? "");
             }
 
-            for (const [fieldId, fileList] of Object.entries(files)) {
+            for (const [fieldId, fileList] of Object.entries(filteredFiles)) {
                 fileList.forEach((file, index) => {
                     formData.append(`file_${fieldId}_${index}`, {
                         uri: file.uri,
@@ -326,8 +339,8 @@ function AnswersForm() {
                 await savePendingAnswer({
                     equipment_id: equipmentId,
                     user_id: userId,
-                    answers: answers,
-                    files: files,
+                    answers: filteredAnswers,
+                    files: filteredFiles,
                 });
                 Toast.show({
                     type: 'info',
