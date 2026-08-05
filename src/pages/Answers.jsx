@@ -3,6 +3,7 @@ import {
     ScrollView, Text, StyleSheet, ActivityIndicator,
     TextInput, TouchableOpacity, View, Image, Modal, Animated, Easing
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -464,7 +465,13 @@ function AnswersForm() {
 
     return (
         <View style={styles.formWrapper}>
-            <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 160 }}>
+            <KeyboardAwareScrollView
+                style={styles.container}
+                contentContainerStyle={{ paddingBottom: 160 }}
+                keyboardShouldPersistTaps="handled"
+                enableOnAndroid={true}
+                extraScrollHeight={80}
+            >
                 {fields.map((field) => {
                     const newCount = (files[field.field_equip_id] || []).length;
                     const fileButtonLabel = newCount > 0
@@ -663,7 +670,7 @@ function AnswersForm() {
                 <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
                     <Text style={styles.submitButtonText}>Guardar respuestas</Text>
                 </TouchableOpacity>
-            </ScrollView>
+            </KeyboardAwareScrollView>
 
             {/* Modal de vista previa */}
             <Modal
